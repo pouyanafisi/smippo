@@ -2,7 +2,7 @@
   <img src="assets/logo.svg" alt="Smippo Logo" width="120" height="100">
 </p>
 
-<h1 align="center">Smippo</h1>
+<h1 align="center">SMIPPO</h1>
 
 <p align="center">
   <strong>S.M.I.P.P.O.</strong> = Structured Mirroring of Internet Pages and Public Objects
@@ -28,33 +28,31 @@ Hippos don't nibble. They vacuum. Smippo follows the same principle: parallel wo
 
 ## Table of Contents
 
-- [Smippo](#smippo)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Quick Start](#quick-start)
-  - [Installation](#installation)
-    - [Requirements](#requirements)
-    - [npm (Global)](#npm-global)
-    - [Homebrew (Coming soon)](#homebrew-coming-soon)
-  - [Usage](#usage)
-    - [Basic Usage](#basic-usage)
-    - [Interactive Mode](#interactive-mode)
-    - [Filtering](#filtering)
-    - [Scope Control](#scope-control)
-    - [Browser Options](#browser-options)
-    - [Screenshots](#screenshots)
-    - [Authentication](#authentication)
-    - [Output Options](#output-options)
-    - [Performance \& Parallelism: The Vacuum Architecture](#performance--parallelism-the-vacuum-architecture)
-    - [Continue/Update](#continueupdate)
-    - [Serve](#serve)
-    - [Static Mode](#static-mode)
-  - [Structured Output](#structured-output)
-  - [Comparison with HTTrack](#comparison-with-httrack)
-  - [Programmatic API](#programmatic-api)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Acknowledgments](#acknowledgments)
+- [Table of Contents](#table-of-contents)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+  - [Requirements](#requirements)
+  - [npm (Global)](#npm-global)
+  - [Homebrew (Coming soon)](#homebrew-coming-soon)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage)
+  - [Interactive Mode](#interactive-mode)
+  - [Filtering](#filtering)
+  - [Scope Control](#scope-control)
+  - [Browser Options](#browser-options)
+  - [Screenshots](#screenshots)
+  - [Authentication](#authentication)
+  - [Output Options](#output-options)
+  - [Performance \& Parallelism: The Vacuum Architecture](#performance--parallelism-the-vacuum-architecture)
+  - [Continue/Update](#continueupdate)
+  - [Serve](#serve)
+  - [Static Mode](#static-mode)
+- [Structured Output](#structured-output)
+- [Programmatic API](#programmatic-api)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## Features
 
@@ -364,20 +362,6 @@ site/
 │   └── log.txt             # Capture log
 └── index.html              # Entry point
 ```
-
-## Comparison with HTTrack
-
-| Feature              | HTTrack    | Smippo    |
-| -------------------- | ---------- | --------- |
-| JavaScript execution | ❌ No      | ✅ Yes    |
-| SPA support          | ❌ Limited | ✅ Native |
-| CSS-in-JS            | ❌ No      | ✅ Yes    |
-| Dynamic content      | ❌ No      | ✅ Yes    |
-| Recursive crawling   | ✅ Yes     | ✅ Yes    |
-| Depth control        | ✅ Yes     | ✅ Yes    |
-| URL filters          | ✅ Yes     | ✅ Yes    |
-| robots.txt           | ✅ Yes     | ✅ Yes    |
-| HAR generation       | ❌ No      | ✅ Yes    |
 
 ## Programmatic API
 
