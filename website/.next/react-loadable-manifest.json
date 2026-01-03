@@ -1,0 +1,14 @@
+{
+  "../../../../.yarn/berry/cache/flexsearch-npm-0.8.212-98b06cde2f-10c0.zip/node_modules/flexsearch/dist/flexsearch.bundle.module.min.mjs -> worker_threads": {
+    "id": "../../../../.yarn/berry/cache/flexsearch-npm-0.8.212-98b06cde2f-10c0.zip/node_modules/flexsearch/dist/flexsearch.bundle.module.min.mjs -> worker_threads",
+    "files": [
+      "static/chunks/_6511.js"
+    ]
+  },
+  "components/Search.tsx -> @/mdx/search.mjs": {
+    "id": "components/Search.tsx -> @/mdx/search.mjs",
+    "files": [
+      "static/chunks/_app-pages-browser_src_mdx_search_mjs.js"
+    ]
+  }
+}
