@@ -1,5 +1,5 @@
-import { minimatch } from 'minimatch';
-import { isInScope } from './utils/url.js';
+import {minimatch} from 'minimatch';
+import {isInScope} from './utils/url.js';
 
 /**
  * URL and resource filter
@@ -66,7 +66,7 @@ export class Filter {
    */
   shouldSaveByMime(contentType) {
     if (!contentType) return true;
-    
+
     const mimeType = contentType.split(';')[0].trim().toLowerCase();
 
     // Check exclude patterns
@@ -116,7 +116,7 @@ export class Filter {
     return patterns.some(pattern => {
       // Convert HTTrack-style patterns to glob patterns
       const globPattern = this.toGlobPattern(pattern);
-      return minimatch(url, globPattern, { nocase: true });
+      return minimatch(url, globPattern, {nocase: true});
     });
   }
 
@@ -141,7 +141,7 @@ export class Filter {
     if (pattern.includes('*')) {
       return pattern;
     }
-    
+
     // Otherwise, treat as a prefix match
     return pattern + '*';
   }
@@ -153,4 +153,3 @@ export class Filter {
 export function createFilter(options) {
   return new Filter(options);
 }
-

@@ -1,132 +1,139 @@
+// @flow
 import http from 'http';
 import fs from 'fs-extra';
 import path from 'path';
-import { createRequire } from 'module';
+import {createRequire} from 'module';
 import chalk from 'chalk';
-import { exec } from 'child_process';
+import {exec} from 'child_process';
 
 // MIME type mapping
 const MIME_TYPES = {
-	'.html': 'text/html; charset=utf-8',
-	'.htm': 'text/html; charset=utf-8',
-	'.css': 'text/css; charset=utf-8',
-	'.js': 'application/javascript; charset=utf-8',
-	'.mjs': 'application/javascript; charset=utf-8',
-	'.json': 'application/json; charset=utf-8',
-	'.xml': 'application/xml; charset=utf-8',
-	'.png': 'image/png',
-	'.jpg': 'image/jpeg',
-	'.jpeg': 'image/jpeg',
-	'.gif': 'image/gif',
-	'.webp': 'image/webp',
-	'.svg': 'image/svg+xml',
-	'.ico': 'image/x-icon',
-	'.bmp': 'image/bmp',
-	'.woff': 'font/woff',
-	'.woff2': 'font/woff2',
-	'.ttf': 'font/ttf',
-	'.otf': 'font/otf',
-	'.eot': 'application/vnd.ms-fontobject',
-	'.mp3': 'audio/mpeg',
-	'.mp4': 'video/mp4',
-	'.webm': 'video/webm',
-	'.ogg': 'audio/ogg',
-	'.wav': 'audio/wav',
-	'.pdf': 'application/pdf',
-	'.zip': 'application/zip',
-	'.tar': 'application/x-tar',
-	'.gz': 'application/gzip',
-	'.txt': 'text/plain; charset=utf-8',
-	'.md': 'text/markdown; charset=utf-8',
-	'.har': 'application/json; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.bmp': 'image/bmp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.tar': 'application/x-tar',
+  '.gz': 'application/gzip',
+  '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.har': 'application/json; charset=utf-8',
 };
 
 /**
  * Check if a port is available
  */
 async function isPortAvailable(port) {
-	return new Promise(resolve => {
-		const server = http.createServer();
-		server.listen(port, '127.0.0.1');
-		server.on('listening', () => {
-			server.close();
-			resolve(true);
-		});
-		server.on('error', () => {
-			resolve(false);
-		});
-	});
+  return new Promise(resolve => {
+    const server = http.createServer();
+    server.listen(port, '127.0.0.1');
+    server.on('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.on('error', () => {
+      resolve(false);
+    });
+  });
 }
 
 /**
  * Find the next available port starting from the given port
  */
 async function findAvailablePort(startPort = 8080, maxAttempts = 100) {
-	for (let port = startPort; port < startPort + maxAttempts; port++) {
-		if (await isPortAvailable(port)) {
-			return port;
-		}
-	}
-	throw new Error(`Could not find an available port between ${startPort} and ${startPort + maxAttempts}`);
+  for (let port = startPort; port < startPort + maxAttempts; port++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(
+    `Could not find an available port between ${startPort} and ${startPort + maxAttempts}`,
+  );
 }
 
 /**
  * Open URL in default browser
  */
 function openBrowser(url) {
-	const platform = process.platform;
-	let command;
+  const platform = process.platform;
+  let command;
 
-	if (platform === 'darwin') {
-		command = `open "${url}"`;
-	} else if (platform === 'win32') {
-		command = `start "" "${url}"`;
-	} else {
-		command = `xdg-open "${url}"`;
-	}
+  if (platform === 'darwin') {
+    command = `open "${url}"`;
+  } else if (platform === 'win32') {
+    command = `start "" "${url}"`;
+  } else {
+    command = `xdg-open "${url}"`;
+  }
 
-	exec(command, error => {
-		if (error) {
-			// Silently fail - browser opening is optional
-		}
-	});
+  exec(command, error => {
+    if (error) {
+      // Silently fail - browser opening is optional
+    }
+  });
 }
 
 /**
  * Get MIME type for a file
  */
 function getMimeType(filePath) {
-	const ext = path.extname(filePath).toLowerCase();
-	return MIME_TYPES[ext] || 'application/octet-stream';
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_TYPES[ext] || 'application/octet-stream';
 }
 
 /**
  * Generate a directory listing HTML page
  */
 async function generateDirectoryListing(dirPath, urlPath, rootDir) {
-	const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const entries = await fs.readdir(dirPath, {withFileTypes: true});
 
-	// Filter out hidden files and .smippo directory
-	const filteredEntries = entries.filter(e => !e.name.startsWith('.'));
+  // Filter out hidden files and .smippo directory
+  const filteredEntries = entries.filter(e => !e.name.startsWith('.'));
 
-	// Separate directories and files
-	const dirs = filteredEntries.filter(e => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name));
-	const files = filteredEntries.filter(e => e.isFile()).sort((a, b) => a.name.localeCompare(b.name));
+  // Separate directories and files
+  const dirs = filteredEntries
+    .filter(e => e.isDirectory())
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const files = filteredEntries
+    .filter(e => e.isFile())
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-	// Check for manifest to get site info
-	let siteInfo = null;
-	const manifestPath = path.join(rootDir, '.smippo', 'manifest.json');
-	if (await fs.pathExists(manifestPath)) {
-		try {
-			siteInfo = await fs.readJson(manifestPath);
-		} catch {}
-	}
+  // Check for manifest to get site info
+  let siteInfo = null;
+  const manifestPath = path.join(rootDir, '.smippo', 'manifest.json');
+  if (await fs.pathExists(manifestPath)) {
+    try {
+      siteInfo = await fs.readJson(manifestPath);
+    } catch {}
+  }
 
-	const isRoot = urlPath === '/' || urlPath === '';
-	const parentPath = urlPath === '/' ? null : path.dirname(urlPath);
+  const isRoot = urlPath === '/' || urlPath === '';
+  const parentPath = urlPath === '/' ? null : path.dirname(urlPath);
 
-	// Generate HTML
-	const html = `<!DOCTYPE html>
+  // Generate HTML
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -237,75 +244,75 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
 			<div class="logo">📦 Smippo</div>
 			<div class="subtitle">${isRoot ? 'Captured Sites Browser' : 'Directory Listing'}</div>
 			${
-				siteInfo && isRoot
-					? `
+        siteInfo && isRoot
+          ? `
 			<div class="site-info">
 				Originally captured from <a href="${siteInfo.rootUrl}" target="_blank">${siteInfo.rootUrl}</a>
 				${siteInfo.capturedAt ? ` on ${new Date(siteInfo.capturedAt).toLocaleDateString()}` : ''}
 			</div>`
-					: ''
-			}
+          : ''
+      }
 		</div>
 		
 		${
-			!isRoot
-				? `
+      !isRoot
+        ? `
 		<div class="breadcrumb">
 			<a href="/">Home</a>
 			${urlPath
-				.split('/')
-				.filter(Boolean)
-				.map((part, i, arr) => {
-					const href = '/' + arr.slice(0, i + 1).join('/');
-					return `<span>/</span><a href="${href}">${part}</a>`;
-				})
-				.join('')}
+        .split('/')
+        .filter(Boolean)
+        .map((part, i, arr) => {
+          const href = '/' + arr.slice(0, i + 1).join('/');
+          return `<span>/</span><a href="${href}">${part}</a>`;
+        })
+        .join('')}
 		</div>`
-				: ''
-		}
+        : ''
+    }
 		
 		<div class="listing">
 			<div class="listing-header">
 				${isRoot ? 'Captured Sites' : `Contents of ${urlPath}`}
 			</div>
 			${
-				parentPath !== null
-					? `
+        parentPath !== null
+          ? `
 			<a href="${parentPath || '/'}" class="entry">
 				<div class="entry-icon dir">⬆️</div>
 				<div class="entry-name">..</div>
 				<div class="entry-meta">Parent Directory</div>
 			</a>`
-					: ''
-			}
+          : ''
+      }
 			${dirs
-				.map(
-					d => `
+        .map(
+          d => `
 			<a href="${urlPath === '/' ? '' : urlPath}/${d.name}" class="entry">
 				<div class="entry-icon dir">📁</div>
 				<div class="entry-name">${d.name}</div>
 				<div class="entry-meta">Directory</div>
-			</a>`
-				)
-				.join('')}
+			</a>`,
+        )
+        .join('')}
 			${files
-				.map(f => {
-					const ext = path.extname(f.name).toLowerCase();
-					const isHtml = ext === '.html' || ext === '.htm';
-					return `
+        .map(f => {
+          const ext = path.extname(f.name).toLowerCase();
+          const isHtml = ext === '.html' || ext === '.htm';
+          return `
 			<a href="${urlPath === '/' ? '' : urlPath}/${f.name}" class="entry">
 				<div class="entry-icon ${isHtml ? 'html' : 'file'}">${isHtml ? '📄' : '📎'}</div>
 				<div class="entry-name">${f.name}</div>
 				<div class="entry-meta">${ext || 'File'}</div>
 			</a>`;
-				})
-				.join('')}
+        })
+        .join('')}
 			${
-				dirs.length === 0 && files.length === 0
-					? `
+        dirs.length === 0 && files.length === 0
+          ? `
 			<div class="empty">No files found</div>`
-					: ''
-			}
+          : ''
+      }
 		</div>
 		
 		<div class="footer">
@@ -315,259 +322,281 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
 </body>
 </html>`;
 
-	return html;
+  return html;
 }
 
 /**
  * Create and start an HTTP server for serving captured sites
  */
 export async function createServer(options = {}) {
-	const {
-		directory = './site',
-		port: requestedPort = 8080,
-		host = '127.0.0.1',
-		open = false,
-		cors = true,
-		verbose = false,
-		quiet = false,
-	} = options;
+  const {
+    directory = './site',
+    port: requestedPort = 8080,
+    host = '127.0.0.1',
+    open = false,
+    cors = true,
+    verbose = false,
+    quiet = false,
+  } = options;
 
-	// Resolve directory to absolute path
-	const rootDir = path.resolve(directory);
+  // Resolve directory to absolute path
+  const rootDir = path.resolve(directory);
 
-	// Check if directory exists
-	if (!(await fs.pathExists(rootDir))) {
-		throw new Error(`Directory not found: ${rootDir}`);
-	}
+  // Check if directory exists
+  if (!(await fs.pathExists(rootDir))) {
+    throw new Error(`Directory not found: ${rootDir}`);
+  }
 
-	// Find available port
-	const port = await findAvailablePort(parseInt(requestedPort, 10));
+  // Find available port
+  const port = await findAvailablePort(parseInt(requestedPort, 10));
 
-	// Create HTTP server
-	const server = http.createServer(async (req, res) => {
-		const startTime = Date.now();
+  // Create HTTP server
+  const server = http.createServer(async (req, res) => {
+    const startTime = Date.now();
 
-		// Parse URL and decode
-		let urlPath = decodeURIComponent(req.url.split('?')[0]);
+    // Parse URL and decode
+    let urlPath = decodeURIComponent(req.url.split('?')[0]);
 
-		// Build file path
-		let filePath = path.join(rootDir, urlPath);
+    // Build file path
+    let filePath = path.join(rootDir, urlPath);
 
-		// Security: prevent directory traversal
-		if (!filePath.startsWith(rootDir)) {
-			res.writeHead(403);
-			res.end('Forbidden');
-			return;
-		}
+    // Security: prevent directory traversal
+    if (!filePath.startsWith(rootDir)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
 
-		try {
-			const stats = await fs.stat(filePath);
+    try {
+      const stats = await fs.stat(filePath);
 
-			// If it's a directory, look for index.html or show listing
-			if (stats.isDirectory()) {
-				const indexPath = path.join(filePath, 'index.html');
-				if (await fs.pathExists(indexPath)) {
-					filePath = indexPath;
-				} else {
-					// Try looking for a .html file with the same name
-					const htmlPath = filePath.replace(/\/$/, '') + '.html';
-					if (await fs.pathExists(htmlPath)) {
-						filePath = htmlPath;
-					} else {
-						// Generate directory listing
-						const listingHtml = await generateDirectoryListing(filePath, urlPath, rootDir);
-						const headers = {
-							'Content-Type': 'text/html; charset=utf-8',
-							'Content-Length': Buffer.byteLength(listingHtml),
-							'Cache-Control': 'no-cache',
-						};
-						if (cors) {
-							headers['Access-Control-Allow-Origin'] = '*';
-						}
-						res.writeHead(200, headers);
-						res.end(listingHtml);
-						logRequest(req, 200, Date.now() - startTime, verbose, quiet);
-						return;
-					}
-				}
-			}
+      // If it's a directory, look for index.html or show listing
+      if (stats.isDirectory()) {
+        const indexPath = path.join(filePath, 'index.html');
+        if (await fs.pathExists(indexPath)) {
+          filePath = indexPath;
+        } else {
+          // Try looking for a .html file with the same name
+          const htmlPath = filePath.replace(/\/$/, '') + '.html';
+          if (await fs.pathExists(htmlPath)) {
+            filePath = htmlPath;
+          } else {
+            // Generate directory listing
+            const listingHtml = await generateDirectoryListing(
+              filePath,
+              urlPath,
+              rootDir,
+            );
+            const headers = {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Content-Length': Buffer.byteLength(listingHtml),
+              'Cache-Control': 'no-cache',
+            };
+            if (cors) {
+              headers['Access-Control-Allow-Origin'] = '*';
+            }
+            res.writeHead(200, headers);
+            res.end(listingHtml);
+            logRequest(req, 200, Date.now() - startTime, verbose, quiet);
+            return;
+          }
+        }
+      }
 
-			// Read and serve the file
-			const content = await fs.readFile(filePath);
-			const mimeType = getMimeType(filePath);
+      // Read and serve the file
+      const content = await fs.readFile(filePath);
+      const mimeType = getMimeType(filePath);
 
-			// Set headers
-			const headers = {
-				'Content-Type': mimeType,
-				'Content-Length': content.length,
-				'Cache-Control': 'no-cache',
-			};
+      // Set headers
+      const headers = {
+        'Content-Type': mimeType,
+        'Content-Length': content.length,
+        'Cache-Control': 'no-cache',
+      };
 
-			// Add CORS headers if enabled
-			if (cors) {
-				headers['Access-Control-Allow-Origin'] = '*';
-				headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS';
-				headers['Access-Control-Allow-Headers'] = '*';
-			}
+      // Add CORS headers if enabled
+      if (cors) {
+        headers['Access-Control-Allow-Origin'] = '*';
+        headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS';
+        headers['Access-Control-Allow-Headers'] = '*';
+      }
 
-			res.writeHead(200, headers);
-			res.end(content);
+      res.writeHead(200, headers);
+      res.end(content);
 
-			logRequest(req, 200, Date.now() - startTime, verbose, quiet);
-		} catch (error) {
-			if (error.code === 'ENOENT') {
-				// Try adding .html extension
-				const htmlPath = filePath + '.html';
-				if (await fs.pathExists(htmlPath)) {
-					const content = await fs.readFile(htmlPath);
-					const headers = {
-						'Content-Type': 'text/html; charset=utf-8',
-						'Content-Length': content.length,
-						'Cache-Control': 'no-cache',
-					};
-					if (cors) {
-						headers['Access-Control-Allow-Origin'] = '*';
-					}
-					res.writeHead(200, headers);
-					res.end(content);
-					logRequest(req, 200, Date.now() - startTime, verbose, quiet);
-					return;
-				}
+      logRequest(req, 200, Date.now() - startTime, verbose, quiet);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // Try adding .html extension
+        const htmlPath = filePath + '.html';
+        if (await fs.pathExists(htmlPath)) {
+          const content = await fs.readFile(htmlPath);
+          const headers = {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Content-Length': content.length,
+            'Cache-Control': 'no-cache',
+          };
+          if (cors) {
+            headers['Access-Control-Allow-Origin'] = '*';
+          }
+          res.writeHead(200, headers);
+          res.end(content);
+          logRequest(req, 200, Date.now() - startTime, verbose, quiet);
+          return;
+        }
 
-				res.writeHead(404);
-				res.end('Not Found');
-				logRequest(req, 404, Date.now() - startTime, verbose, quiet);
-			} else {
-				res.writeHead(500);
-				res.end('Internal Server Error');
-				logRequest(req, 500, Date.now() - startTime, verbose, quiet);
-			}
-		}
-	});
+        res.writeHead(404);
+        res.end('Not Found');
+        logRequest(req, 404, Date.now() - startTime, verbose, quiet);
+      } else {
+        res.writeHead(500);
+        res.end('Internal Server Error');
+        logRequest(req, 500, Date.now() - startTime, verbose, quiet);
+      }
+    }
+  });
 
-	// Handle server errors
-	server.on('error', error => {
-		if (error.code === 'EADDRINUSE') {
-			console.error(chalk.red(`Port ${port} is already in use`));
-		} else {
-			console.error(chalk.red(`Server error: ${error.message}`));
-		}
-		process.exit(1);
-	});
+  // Handle server errors
+  server.on('error', error => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(chalk.red(`Port ${port} is already in use`));
+    } else {
+      console.error(chalk.red(`Server error: ${error.message}`));
+    }
+    process.exit(1);
+  });
 
-	// Start listening
-	return new Promise(resolve => {
-		server.listen(port, host, () => {
-			const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+  // Start listening
+  return new Promise(resolve => {
+    server.listen(port, host, () => {
+      const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
 
-			if (!quiet) {
-				console.log('');
-				console.log(chalk.cyan('  ╭─────────────────────────────────────────────╮'));
-				console.log(chalk.cyan('  │                                             │'));
-				console.log(
-					chalk.cyan('  │  ') +
-						chalk.bold.white('Smippo Server') +
-						chalk.cyan('                            │')
-				);
-				console.log(chalk.cyan('  │                                             │'));
-				console.log(
-					chalk.cyan('  │  ') + chalk.dim('Local:   ') + chalk.bold.green(url) + chalk.cyan('        │')
-				);
-				if (host === '0.0.0.0') {
-					console.log(
-						chalk.cyan('  │  ') +
-							chalk.dim('Network: ') +
-							chalk.bold.green(`http://[your-ip]:${port}`) +
-							chalk.cyan('   │')
-					);
-				}
-				console.log(chalk.cyan('  │                                             │'));
-				console.log(
-					chalk.cyan('  │  ') +
-						chalk.dim('Serving: ') +
-						chalk.white(truncatePath(rootDir, 30)) +
-						chalk.cyan('  │')
-				);
-				console.log(chalk.cyan('  │                                             │'));
-				console.log(
-					chalk.cyan('  │  ') +
-						chalk.dim('Press ') +
-						chalk.white('Ctrl+C') +
-						chalk.dim(' to stop') +
-						chalk.cyan('                   │')
-				);
-				console.log(chalk.cyan('  │                                             │'));
-				console.log(chalk.cyan('  ╰─────────────────────────────────────────────╯'));
-				console.log('');
-			}
+      if (!quiet) {
+        console.log('');
+        console.log(
+          chalk.cyan('  ╭─────────────────────────────────────────────╮'),
+        );
+        console.log(
+          chalk.cyan('  │                                             │'),
+        );
+        console.log(
+          chalk.cyan('  │  ') +
+            chalk.bold.white('Smippo Server') +
+            chalk.cyan('                            │'),
+        );
+        console.log(
+          chalk.cyan('  │                                             │'),
+        );
+        console.log(
+          chalk.cyan('  │  ') +
+            chalk.dim('Local:   ') +
+            chalk.bold.green(url) +
+            chalk.cyan('        │'),
+        );
+        if (host === '0.0.0.0') {
+          console.log(
+            chalk.cyan('  │  ') +
+              chalk.dim('Network: ') +
+              chalk.bold.green(`http://[your-ip]:${port}`) +
+              chalk.cyan('   │'),
+          );
+        }
+        console.log(
+          chalk.cyan('  │                                             │'),
+        );
+        console.log(
+          chalk.cyan('  │  ') +
+            chalk.dim('Serving: ') +
+            chalk.white(truncatePath(rootDir, 30)) +
+            chalk.cyan('  │'),
+        );
+        console.log(
+          chalk.cyan('  │                                             │'),
+        );
+        console.log(
+          chalk.cyan('  │  ') +
+            chalk.dim('Press ') +
+            chalk.white('Ctrl+C') +
+            chalk.dim(' to stop') +
+            chalk.cyan('                   │'),
+        );
+        console.log(
+          chalk.cyan('  │                                             │'),
+        );
+        console.log(
+          chalk.cyan('  ╰─────────────────────────────────────────────╯'),
+        );
+        console.log('');
+      }
 
-			// Open browser if requested
-			if (open) {
-				openBrowser(url);
-			}
+      // Open browser if requested
+      if (open) {
+        openBrowser(url);
+      }
 
-			resolve({
-				server,
-				port,
-				host,
-				url,
-				close: () => new Promise(res => server.close(res)),
-			});
-		});
-	});
+      resolve({
+        server,
+        port,
+        host,
+        url,
+        close: () => new Promise(res => server.close(res)),
+      });
+    });
+  });
 }
 
 /**
  * Log a request
  */
 function logRequest(req, status, duration, verbose, quiet) {
-	if (quiet) return;
-	if (!verbose && status === 200) return;
+  if (quiet) return;
+  if (!verbose && status === 200) return;
 
-	const statusColor = status < 300 ? chalk.green : status < 400 ? chalk.yellow : chalk.red;
-	const method = chalk.dim(req.method.padEnd(4));
-	const url = req.url.length > 50 ? req.url.slice(0, 47) + '...' : req.url;
-	const time = chalk.dim(`${duration}ms`);
+  const statusColor =
+    status < 300 ? chalk.green : status < 400 ? chalk.yellow : chalk.red;
+  const method = chalk.dim(req.method.padEnd(4));
+  const url = req.url.length > 50 ? req.url.slice(0, 47) + '...' : req.url;
+  const time = chalk.dim(`${duration}ms`);
 
-	console.log(`  ${method} ${statusColor(status)} ${url} ${time}`);
+  console.log(`  ${method} ${statusColor(status)} ${url} ${time}`);
 }
 
 /**
  * Truncate a path for display
  */
 function truncatePath(p, maxLen) {
-	if (p.length <= maxLen) return p.padEnd(maxLen);
-	return '...' + p.slice(-(maxLen - 3));
+  if (p.length <= maxLen) return p.padEnd(maxLen);
+  return '...' + p.slice(-(maxLen - 3));
 }
 
 /**
  * Serve command for CLI
  */
 export async function serve(options) {
-	try {
-		const serverInfo = await createServer({
-			directory: options.output || options.directory || './site',
-			port: options.port || 8080,
-			host: options.host || '127.0.0.1',
-			open: options.open,
-			cors: options.cors !== false,
-			verbose: options.verbose,
-			quiet: options.quiet,
-		});
+  try {
+    const serverInfo = await createServer({
+      directory: options.output || options.directory || './site',
+      port: options.port || 8080,
+      host: options.host || '127.0.0.1',
+      open: options.open,
+      cors: options.cors !== false,
+      verbose: options.verbose,
+      quiet: options.quiet,
+    });
 
-		// Keep process running
-		process.on('SIGINT', async () => {
-			console.log(chalk.dim('\n  Shutting down server...'));
-			await serverInfo.close();
-			process.exit(0);
-		});
+    // Keep process running
+    process.on('SIGINT', async () => {
+      console.log(chalk.dim('\n  Shutting down server...'));
+      await serverInfo.close();
+      process.exit(0);
+    });
 
-		process.on('SIGTERM', async () => {
-			await serverInfo.close();
-			process.exit(0);
-		});
-	} catch (error) {
-		console.error(chalk.red(`\n✗ Error: ${error.message}`));
-		process.exit(1);
-	}
+    process.on('SIGTERM', async () => {
+      await serverInfo.close();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error(chalk.red(`\n✗ Error: ${error.message}`));
+    process.exit(1);
+  }
 }

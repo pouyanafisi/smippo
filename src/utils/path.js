@@ -1,4 +1,4 @@
-import { dirname, relative, join, extname, basename } from 'path';
+import {dirname, relative, join, extname, basename} from 'path';
 
 /**
  * Calculate relative path from one file to another
@@ -6,15 +6,15 @@ import { dirname, relative, join, extname, basename } from 'path';
 export function getRelativePath(from, to) {
   const fromDir = dirname(from);
   let rel = relative(fromDir, to);
-  
+
   // Ensure forward slashes
   rel = rel.replace(/\\/g, '/');
-  
+
   // Add ./ prefix if needed
   if (!rel.startsWith('.') && !rel.startsWith('/')) {
     rel = './' + rel;
   }
-  
+
   return rel;
 }
 
@@ -23,10 +23,10 @@ export function getRelativePath(from, to) {
  */
 export function sanitizePath(str) {
   return str
-    .replace(/[<>:"|?*]/g, '_')    // Invalid chars
-    .replace(/\.\./g, '_')          // No directory traversal
-    .replace(/\/+/g, '/')           // Collapse multiple slashes
-    .slice(0, 200);                 // Limit length
+    .replace(/[<>:"|?*]/g, '_') // Invalid chars
+    .replace(/\.\./g, '_') // No directory traversal
+    .replace(/\/+/g, '/') // Collapse multiple slashes
+    .slice(0, 200); // Limit length
 }
 
 /**
@@ -47,17 +47,17 @@ export function getUniqueFilename(basePath, existingPaths) {
   if (!existingPaths.has(basePath)) {
     return basePath;
   }
-  
+
   const ext = extname(basePath);
   const base = basePath.slice(0, -ext.length || undefined);
-  
+
   let counter = 1;
   let newPath;
   do {
     newPath = `${base}-${counter}${ext}`;
     counter++;
   } while (existingPaths.has(newPath));
-  
+
   return newPath;
 }
 
@@ -74,4 +74,3 @@ export function joinPath(...parts) {
 export function getBasename(filePath) {
   return basename(filePath, extname(filePath));
 }
-

@@ -1,5 +1,6 @@
-import { load } from 'cheerio';
-import { resolveUrl, isLikelyPage } from './utils/url.js';
+// @flow
+import {load} from 'cheerio';
+import {resolveUrl, isLikelyPage} from './utils/url.js';
 
 /**
  * Extract all links from a page
@@ -7,7 +8,7 @@ import { resolveUrl, isLikelyPage } from './utils/url.js';
 export async function extractLinks(page, baseUrl, options = {}) {
   const html = await page.content();
   const $ = load(html);
-  
+
   const links = new Set();
   const assets = new Set();
 
@@ -131,12 +132,14 @@ export async function extractLinks(page, baseUrl, options = {}) {
 
   // Separate page links from asset links
   const pageLinks = [...links].filter(url => isLikelyPage(url));
-  const assetLinks = [...assets, ...links.values()].filter(url => !isLikelyPage(url));
+  const assetLinks = [...assets, ...links.values()].filter(
+    url => !isLikelyPage(url),
+  );
 
   return {
     pages: [...new Set(pageLinks)],
     assets: [...new Set(assetLinks)],
-    all: [...new Set([...links, ...assets])]
+    all: [...new Set([...links, ...assets])],
   };
 }
 
@@ -145,11 +148,11 @@ export async function extractLinks(page, baseUrl, options = {}) {
  */
 export function extractCssUrls(css, baseUrl) {
   if (!css) return [];
-  
+
   const urls = [];
   const urlRegex = /url\s*\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
   const importRegex = /@import\s+['"]([^'"]+)['"]/gi;
-  
+
   let match;
   while ((match = urlRegex.exec(css)) !== null) {
     const resolved = resolveAndClean(match[1], baseUrl);
@@ -157,14 +160,14 @@ export function extractCssUrls(css, baseUrl) {
       urls.push(resolved);
     }
   }
-  
+
   while ((match = importRegex.exec(css)) !== null) {
     const resolved = resolveAndClean(match[1], baseUrl);
     if (resolved && isHttpUrl(resolved)) {
       urls.push(resolved);
     }
   }
-  
+
   return urls;
 }
 
@@ -183,7 +186,7 @@ function parseSrcset(srcset) {
  */
 function resolveAndClean(url, baseUrl) {
   if (!url) return null;
-  
+
   // Skip special URLs
   url = url.trim();
   if (url.startsWith('javascript:')) return null;
@@ -191,7 +194,7 @@ function resolveAndClean(url, baseUrl) {
   if (url.startsWith('tel:')) return null;
   if (url.startsWith('data:')) return null;
   if (url.startsWith('#')) return null;
-  
+
   try {
     const resolved = resolveUrl(url, baseUrl);
     // Remove hash fragment
@@ -207,4 +210,3 @@ function resolveAndClean(url, baseUrl) {
 function isHttpUrl(url) {
   return url.startsWith('http://') || url.startsWith('https://');
 }
-

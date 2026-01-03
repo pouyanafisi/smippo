@@ -7,23 +7,25 @@ build/
 lib/
 site/
 
+# Test outputs
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
 # Cache
 .cache/
 *.log
 
-# Coverage
-coverage/
-.nyc_output/
-
 # Generated files
 *.min.js
 *.bundle.js
-package-lock.json
-
-# Test outputs
-test-results/
-playwright-report/
 
 # Other repos
 parcel/
 website/
+
+# Playwright
+playwright-report/
+test-results/
+

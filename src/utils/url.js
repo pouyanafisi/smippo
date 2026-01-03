@@ -13,8 +13,10 @@ export function normalizeUrl(url) {
       parsed.pathname = parsed.pathname.slice(0, -1);
     }
     // Remove default ports
-    if ((parsed.protocol === 'http:' && parsed.port === '80') ||
-        (parsed.protocol === 'https:' && parsed.port === '443')) {
+    if (
+      (parsed.protocol === 'http:' && parsed.port === '80') ||
+      (parsed.protocol === 'https:' && parsed.port === '443')
+    ) {
       parsed.port = '';
     }
     // Sort query params for consistency
@@ -102,13 +104,13 @@ export function isInDirectory(url, baseUrl) {
   try {
     const parsed = new URL(url);
     const baseParsed = new URL(baseUrl);
-    
+
     if (parsed.origin !== baseParsed.origin) return false;
-    
-    const basePath = baseParsed.pathname.endsWith('/') 
-      ? baseParsed.pathname 
+
+    const basePath = baseParsed.pathname.endsWith('/')
+      ? baseParsed.pathname
       : baseParsed.pathname.replace(/\/[^/]*$/, '/');
-    
+
     return parsed.pathname.startsWith(basePath);
   } catch {
     return false;
@@ -123,11 +125,11 @@ export function getRootDomain(hostname) {
   // Handle special cases like co.uk, com.au
   const specialTlds = ['co.uk', 'com.au', 'co.nz', 'org.uk'];
   const lastTwo = parts.slice(-2).join('.');
-  
+
   if (specialTlds.includes(lastTwo)) {
     return parts.slice(-3).join('.');
   }
-  
+
   return parts.slice(-2).join('.');
 }
 
@@ -146,7 +148,7 @@ export function isInScope(url, baseUrl, scope, stayInDir = false) {
   if (stayInDir && !isInDirectory(url, baseUrl)) {
     return false;
   }
-  
+
   switch (scope) {
     case 'subdomain':
       return isSameOrigin(url, baseUrl);
@@ -168,23 +170,23 @@ export function urlToPath(url, structure = 'original') {
   try {
     const parsed = new URL(url);
     let pathname = parsed.pathname;
-    
+
     // Handle root path
     if (pathname === '/' || pathname === '') {
       pathname = '/index.html';
     }
-    
+
     // Add index.html for directory paths
     if (pathname.endsWith('/')) {
       pathname += 'index.html';
     }
-    
+
     // Add .html extension if no extension and not a known file type
     const hasExtension = /\.[a-z0-9]+$/i.test(pathname);
     if (!hasExtension) {
       pathname += '.html';
     }
-    
+
     // Handle query strings
     if (parsed.search) {
       const hash = simpleHash(parsed.search);
@@ -192,17 +194,17 @@ export function urlToPath(url, structure = 'original') {
       const base = pathname.slice(0, -ext.length || undefined);
       pathname = `${base}-${hash}${ext}`;
     }
-    
+
     switch (structure) {
       case 'flat':
         // Flatten to single directory with hashed names
         const flatName = pathname.replace(/\//g, '-').replace(/^-/, '');
         return flatName;
-        
+
       case 'domain':
         // Include full hostname
         return `${parsed.hostname}${pathname}`;
-        
+
       case 'original':
       default:
         // Include hostname without www
@@ -221,7 +223,7 @@ function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash).toString(16).slice(0, 8);
@@ -232,14 +234,35 @@ function simpleHash(str) {
  */
 export function isLikelyPage(url) {
   const assetExtensions = [
-    '.css', '.js', '.json', '.xml',
-    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.bmp',
-    '.woff', '.woff2', '.ttf', '.eot', '.otf',
-    '.mp3', '.mp4', '.webm', '.ogg', '.wav',
-    '.pdf', '.zip', '.tar', '.gz',
-    '.map'
+    '.css',
+    '.js',
+    '.json',
+    '.xml',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.webp',
+    '.svg',
+    '.ico',
+    '.bmp',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.eot',
+    '.otf',
+    '.mp3',
+    '.mp4',
+    '.webm',
+    '.ogg',
+    '.wav',
+    '.pdf',
+    '.zip',
+    '.tar',
+    '.gz',
+    '.map',
   ];
-  
+
   try {
     const parsed = new URL(url);
     const pathname = parsed.pathname.toLowerCase();
@@ -268,4 +291,3 @@ export function getExtension(url) {
     return '';
   }
 }
-

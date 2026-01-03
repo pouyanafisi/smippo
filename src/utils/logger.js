@@ -35,7 +35,10 @@ export class Logger {
     if (error && this.verbose) {
       console.error(chalk.red(error.stack || error));
     }
-    this._writeToFile('ERROR', `${message}${error ? `: ${error.message}` : ''}`);
+    this._writeToFile(
+      'ERROR',
+      `${message}${error ? `: ${error.message}` : ''}`,
+    );
   }
 
   debug(message) {
@@ -47,11 +50,11 @@ export class Logger {
 
   _writeToFile(level, message) {
     if (!this.logFile) return;
-    
+
     const timestamp = new Date().toISOString();
     const line = `[${timestamp}] [${level}] ${message}\n`;
     this.logBuffer.push(line);
-    
+
     // Flush buffer periodically
     if (this.logBuffer.length >= 10) {
       this.flush();
@@ -60,7 +63,7 @@ export class Logger {
 
   async flush() {
     if (!this.logFile || this.logBuffer.length === 0) return;
-    
+
     try {
       await fs.appendFile(this.logFile, this.logBuffer.join(''));
       this.logBuffer = [];
@@ -69,4 +72,3 @@ export class Logger {
     }
   }
 }
-

@@ -366,39 +366,39 @@ site/
 ## Programmatic API
 
 ```javascript
-import { capture, Crawler, createServer } from 'smippo';
+import {capture, Crawler, createServer} from 'smippo';
 
 // Simple capture
 const result = await capture('https://example.com', {
-	output: './mirror',
-	depth: 2,
+  output: './mirror',
+  depth: 2,
 });
 
 console.log(`Captured ${result.stats.pagesCapt} pages`);
 
 // Advanced usage with events
 const crawler = new Crawler({
-	url: 'https://example.com',
-	output: './mirror',
-	depth: 3,
-	scope: 'domain',
+  url: 'https://example.com',
+  output: './mirror',
+  depth: 3,
+  scope: 'domain',
 });
 
-crawler.on('page:complete', ({ url, size }) => {
-	console.log(`Captured: ${url} (${size} bytes)`);
+crawler.on('page:complete', ({url, size}) => {
+  console.log(`Captured: ${url} (${size} bytes)`);
 });
 
-crawler.on('error', ({ url, error }) => {
-	console.error(`Failed: ${url} - ${error.message}`);
+crawler.on('error', ({url, error}) => {
+  console.error(`Failed: ${url} - ${error.message}`);
 });
 
 await crawler.start();
 
 // Start a server programmatically
 const server = await createServer({
-	directory: './mirror',
-	port: 8080,
-	open: true, // Opens browser automatically
+  directory: './mirror',
+  port: 8080,
+  open: true, // Opens browser automatically
 });
 
 console.log(`Server running at ${server.url}`);

@@ -1,3 +1,4 @@
+// @flow
 import robotsParser from 'robots-parser';
 
 /**
@@ -19,7 +20,7 @@ export class RobotsHandler {
     try {
       const robots = await this.getRobots(url, fetchFn);
       if (!robots) return true;
-      
+
       return robots.isAllowed(url, this.userAgent);
     } catch {
       // If we can't fetch/parse robots.txt, allow access
@@ -34,7 +35,7 @@ export class RobotsHandler {
     try {
       const parsed = new URL(url);
       const robotsUrl = `${parsed.origin}/robots.txt`;
-      
+
       // Check cache
       if (this.cache.has(robotsUrl)) {
         return this.cache.get(robotsUrl);
@@ -42,7 +43,7 @@ export class RobotsHandler {
 
       // Fetch robots.txt
       const robotsContent = await fetchFn(robotsUrl);
-      
+
       if (!robotsContent) {
         this.cache.set(robotsUrl, null);
         return null;
@@ -51,7 +52,7 @@ export class RobotsHandler {
       // Parse robots.txt
       const robots = robotsParser(robotsUrl, robotsContent);
       this.cache.set(robotsUrl, robots);
-      
+
       return robots;
     } catch {
       return null;
@@ -68,9 +69,9 @@ export class RobotsHandler {
       const parsed = new URL(url);
       const robotsUrl = `${parsed.origin}/robots.txt`;
       const robots = this.cache.get(robotsUrl);
-      
+
       if (!robots) return 0;
-      
+
       return robots.getCrawlDelay(this.userAgent) || 0;
     } catch {
       return 0;
@@ -85,9 +86,9 @@ export class RobotsHandler {
       const parsed = new URL(url);
       const robotsUrl = `${parsed.origin}/robots.txt`;
       const robots = this.cache.get(robotsUrl);
-      
+
       if (!robots) return [];
-      
+
       return robots.getSitemaps() || [];
     } catch {
       return [];
@@ -101,4 +102,3 @@ export class RobotsHandler {
     this.cache.clear();
   }
 }
-

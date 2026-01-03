@@ -1,5 +1,6 @@
-import { extractLinks } from './link-extractor.js';
-import { rewriteLinks } from './link-rewriter.js';
+// @flow
+import {extractLinks} from './link-extractor.js';
+import {rewriteLinks} from './link-rewriter.js';
 
 /**
  * Capture a single page with all its rendered content
@@ -16,9 +17,9 @@ export class PageCapture {
    */
   async capture(url) {
     const startTime = Date.now();
-    
+
     // Set up resource collection
-    this.page.on('response', async (response) => {
+    this.page.on('response', async response => {
       await this._collectResource(response);
     });
 
@@ -26,7 +27,7 @@ export class PageCapture {
     try {
       await this.page.goto(url, {
         waitUntil: this.options.wait || 'networkidle',
-        timeout: this.options.timeout || 30000
+        timeout: this.options.timeout || 30000,
       });
     } catch (error) {
       // Handle navigation errors but continue if we got some content
@@ -42,7 +43,7 @@ export class PageCapture {
 
     // Get the rendered HTML
     const html = await this.page.content();
-    
+
     // Get page metadata
     const title = await this.page.title();
     const finalUrl = this.page.url();
@@ -55,7 +56,7 @@ export class PageCapture {
     if (this.options.screenshot) {
       screenshot = await this.page.screenshot({
         fullPage: true,
-        type: 'png'
+        type: 'png',
       });
     }
 
@@ -64,7 +65,7 @@ export class PageCapture {
     if (this.options.pdf) {
       pdf = await this.page.pdf({
         format: 'A4',
-        printBackground: true
+        printBackground: true,
       });
     }
 
@@ -77,7 +78,7 @@ export class PageCapture {
       resources: this.resources,
       screenshot,
       pdf,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 
@@ -90,23 +91,23 @@ export class PageCapture {
       const status = response.status();
       const headers = response.headers();
       const contentType = headers['content-type'] || '';
-      
+
       // Skip failed requests
       if (status < 200 || status >= 400) return;
-      
+
       // Skip the main HTML page (captured separately)
       if (contentType.includes('text/html')) return;
-      
+
       // Skip data URLs
       if (url.startsWith('data:')) return;
-      
+
       // Apply MIME type filters
       if (this.options.mimeExclude?.length) {
         if (this._matchesMimeFilter(contentType, this.options.mimeExclude)) {
           return;
         }
       }
-      
+
       if (this.options.mimeInclude?.length) {
         if (!this._matchesMimeFilter(contentType, this.options.mimeInclude)) {
           return;
@@ -116,7 +117,7 @@ export class PageCapture {
       // Get the response body
       const body = await response.body().catch(() => null);
       if (!body) return;
-      
+
       // Apply size filters
       if (this.options.maxSize && body.length > this.options.maxSize) return;
       if (this.options.minSize && body.length < this.options.minSize) return;
@@ -127,7 +128,7 @@ export class PageCapture {
         contentType,
         size: body.length,
         body,
-        headers
+        headers,
       });
     } catch (error) {
       // Ignore resource collection errors
@@ -139,7 +140,7 @@ export class PageCapture {
    */
   _matchesMimeFilter(contentType, filters) {
     const type = contentType.split(';')[0].trim().toLowerCase();
-    
+
     return filters.some(filter => {
       filter = filter.toLowerCase();
       if (filter.endsWith('/*')) {
@@ -149,4 +150,3 @@ export class PageCapture {
     });
   }
 }
-

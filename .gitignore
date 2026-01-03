@@ -48,3 +48,7 @@ website/
 
 # Parcel (comparison only, to be removed)
 parcel/
+
+# Verdaccio (local npm registry)
+.verdaccio_storage/
+htpasswd

@@ -9,6 +9,7 @@
 ### Philosophy: First Principles
 
 A browser downloads a page by:
+
 1. Fetching the initial HTML
 2. Executing JavaScript
 3. Making subsequent network requests (images, fonts, API calls, etc.)
@@ -20,34 +21,35 @@ Playwright gives us exactly this capability. Smippo leverages it to create faith
 
 ## Feature Comparison with HTTrack
 
-| Feature | HTTrack | Smippo |
-|---------|---------|--------|
-| JavaScript execution | ❌ No | ✅ Full browser rendering |
-| SPA support | ❌ Limited | ✅ Native |
-| CSS-in-JS capture | ❌ No | ✅ Yes |
-| Dynamic content | ❌ No | ✅ Yes |
-| Recursive crawling | ✅ Yes | ✅ Yes |
-| Depth control | ✅ Yes | ✅ Yes |
-| URL filters | ✅ Yes | ✅ Yes |
-| MIME type filters | ✅ Yes | ✅ Yes |
-| File size filters | ✅ Yes | ✅ Yes |
-| robots.txt support | ✅ Yes | ✅ Yes |
-| Cookie support | ✅ Yes | ✅ Yes |
-| Custom headers | ✅ Yes | ✅ Yes |
-| Proxy support | ✅ Yes | ✅ Yes |
-| HAR file generation | ❌ No | ✅ Yes |
-| Resume/continue | ✅ Yes | ✅ Yes |
-| Cache system | ✅ ZIP | ✅ JSON + files |
-| Link rewriting | ✅ Yes | ✅ Yes |
-| Concurrent connections | ✅ Yes | ✅ Yes (browser tabs) |
-| Authentication | ✅ Basic | ✅ Full (incl. form-based) |
-| Performance | ✅ Fast | ⚡ Moderate (real browser) |
+| Feature                | HTTrack    | Smippo                     |
+| ---------------------- | ---------- | -------------------------- |
+| JavaScript execution   | ❌ No      | ✅ Full browser rendering  |
+| SPA support            | ❌ Limited | ✅ Native                  |
+| CSS-in-JS capture      | ❌ No      | ✅ Yes                     |
+| Dynamic content        | ❌ No      | ✅ Yes                     |
+| Recursive crawling     | ✅ Yes     | ✅ Yes                     |
+| Depth control          | ✅ Yes     | ✅ Yes                     |
+| URL filters            | ✅ Yes     | ✅ Yes                     |
+| MIME type filters      | ✅ Yes     | ✅ Yes                     |
+| File size filters      | ✅ Yes     | ✅ Yes                     |
+| robots.txt support     | ✅ Yes     | ✅ Yes                     |
+| Cookie support         | ✅ Yes     | ✅ Yes                     |
+| Custom headers         | ✅ Yes     | ✅ Yes                     |
+| Proxy support          | ✅ Yes     | ✅ Yes                     |
+| HAR file generation    | ❌ No      | ✅ Yes                     |
+| Resume/continue        | ✅ Yes     | ✅ Yes                     |
+| Cache system           | ✅ ZIP     | ✅ JSON + files            |
+| Link rewriting         | ✅ Yes     | ✅ Yes                     |
+| Concurrent connections | ✅ Yes     | ✅ Yes (browser tabs)      |
+| Authentication         | ✅ Basic   | ✅ Full (incl. form-based) |
+| Performance            | ✅ Fast    | ⚡ Moderate (real browser) |
 
 ---
 
 ## Core Features
 
 ### 1. Single Page Capture (No Crawl Mode)
+
 ```bash
 smippo https://example.com
 ```
@@ -55,11 +57,13 @@ smippo https://example.com
 Captures a single page with all its rendered content and network artifacts.
 
 **Output:**
+
 - `index.html` - Fully rendered HTML
 - `assets/` - All fetched resources (images, CSS, JS, fonts, etc.)
 - `network.har` - HAR file for debugging/replay
 
 ### 2. Recursive Website Mirroring
+
 ```bash
 smippo https://example.com --depth 3
 ```
@@ -69,16 +73,19 @@ Crawls the website following internal links up to the specified depth.
 ### 3. Resource Filtering
 
 **By URL pattern:**
+
 ```bash
 smippo https://example.com --include "*.jpg" --exclude "*tracking*"
 ```
 
 **By MIME type:**
+
 ```bash
 smippo https://example.com --mime-include "image/*" --mime-exclude "video/*"
 ```
 
 **By file size:**
+
 ```bash
 smippo https://example.com --max-size 5MB --min-size 1KB
 ```
@@ -102,19 +109,23 @@ smippo https://example.com/docs/ --scope directory
 ### 5. Authentication Support
 
 **Basic auth:**
+
 ```bash
 smippo https://user:pass@example.com
 ```
 
 **Cookie-based:**
+
 ```bash
 smippo https://example.com --cookies cookies.json
 ```
 
 **Form-based (interactive capture):**
+
 ```bash
 smippo https://example.com --capture-auth
 ```
+
 Opens a browser window for manual login, then captures the session.
 
 ---
@@ -140,12 +151,12 @@ Options:
     -d, --depth <n>         Recursion depth (default: 0 = single page)
     --no-crawl              Disable link following (same as -d 0)
     --dry-run               Show what would be captured without downloading
-    
+
   Scope:
     -s, --scope <type>      Link scope: subdomain|domain|tld|all (default: domain)
     --stay-in-dir           Only follow links in same directory or subdirs
     --external-assets       Capture assets from external domains
-    
+
   Filters:
     -I, --include <glob>    Include URLs matching pattern (can repeat)
     -E, --exclude <glob>    Exclude URLs matching pattern (can repeat)
@@ -153,7 +164,7 @@ Options:
     --mime-exclude <type>   Exclude MIME types (can repeat)
     --max-size <size>       Maximum file size (e.g., 10MB)
     --min-size <size>       Minimum file size (e.g., 1KB)
-    
+
   Browser:
     --wait <strategy>       Wait strategy: networkidle|load|domcontentloaded (default: networkidle)
     --wait-time <ms>        Additional wait time after network idle
@@ -161,40 +172,40 @@ Options:
     --user-agent <string>   Custom user agent
     --viewport <WxH>        Viewport size (default: 1920x1080)
     --device <name>         Emulate device (e.g., "iPhone 13")
-    
+
   Network:
     --proxy <url>           Proxy server URL
     --cookies <file>        Load cookies from JSON file
     --headers <json>        Custom headers as JSON
     --capture-auth          Interactive authentication capture
-    
+
   Output:
     --structure <type>      Output structure: original|flat|domain (default: original)
     --har                   Generate HAR file (default: true)
     --no-har                Disable HAR file generation
     --screenshot            Take screenshot of each page
     --pdf                   Save PDF of each page
-    
+
   Performance:
     -w, --workers <n>       Parallel workers (default: 8)
     --max-pages <n>         Maximum pages to capture
     --max-time <seconds>    Maximum total time
     --rate-limit <ms>       Delay between requests
-    
+
   Robots:
     --ignore-robots         Ignore robots.txt
     --respect-robots        Respect robots.txt (default)
-    
+
   Cache:
     --no-cache              Don't use cache
     --cache-only            Only serve from cache (update mode)
-    
+
   Logging:
     -v, --verbose           Verbose output
     -q, --quiet             Minimal output
     --log-file <path>       Write logs to file
     --debug                 Debug mode with full browser
-    
+
   Misc:
     --version               Show version
     --help                  Show help
@@ -205,7 +216,9 @@ Options:
 ## Output Structure
 
 ### Default Structure (Original)
+
 Preserves the URL path structure:
+
 ```
 site/
 ├── example.com/
@@ -224,7 +237,9 @@ site/
 ```
 
 ### Flat Structure
+
 All files in one directory with hashed names:
+
 ```
 site/
 ├── index.html
@@ -236,7 +251,9 @@ site/
 ```
 
 ### Domain Structure
+
 Organized by domain:
+
 ```
 site/
 ├── www.example.com/
@@ -252,6 +269,7 @@ site/
 ## Manifest & Cache Format
 
 ### manifest.json
+
 ```json
 {
   "version": "0.0.1",
@@ -295,6 +313,7 @@ site/
 ```
 
 ### cache.json
+
 ```json
 {
   "etags": {
@@ -317,20 +336,23 @@ site/
 Smippo rewrites all links in captured HTML/CSS to point to local files:
 
 **Original:**
+
 ```html
-<link href="https://example.com/style.css" rel="stylesheet">
-<img src="/images/logo.png">
+<link href="https://example.com/style.css" rel="stylesheet" />
+<img src="/images/logo.png" />
 <a href="https://example.com/about">About</a>
 ```
 
 **Rewritten:**
+
 ```html
-<link href="./style.css" rel="stylesheet">
-<img src="./images/logo.png">
+<link href="./style.css" rel="stylesheet" />
+<img src="./images/logo.png" />
 <a href="./about/index.html">About</a>
 ```
 
 ### Link Types Handled
+
 - `<a href>`
 - `<link href>`
 - `<script src>`
@@ -349,37 +371,44 @@ Smippo rewrites all links in captured HTML/CSS to point to local files:
 ## Use Cases
 
 ### 1. Archive a Blog
+
 ```bash
 smippo https://myblog.com --depth 5 --exclude "*/comments*" -o ~/archives/myblog
 ```
 
 ### 2. Offline Documentation
+
 ```bash
 smippo https://docs.library.com --depth 10 --scope subdomain -o ./docs
 ```
 
 ### 3. Single Page App Snapshot
+
 ```bash
 smippo https://myapp.com --wait-time 5000 --screenshot
 ```
 
 ### 4. Capture Behind Login
+
 ```bash
 smippo https://private.site.com --capture-auth --depth 3
 ```
 
 ### 5. Mirror with Size Limits
+
 ```bash
 smippo https://media.site.com --max-size 10MB --mime-exclude "video/*"
 ```
 
 ### 6. Update Existing Mirror
+
 ```bash
 cd my-mirror/
 smippo update
 ```
 
 ### 7. Take Screenshots
+
 ```bash
 # Basic screenshot
 smippo capture https://example.com
@@ -398,6 +427,7 @@ smippo capture https://example.com --selector ".hero-section"
 ```
 
 ### 8. Serve Captured Site
+
 ```bash
 # Serve with auto port detection
 smippo serve ./site
@@ -410,6 +440,7 @@ smippo serve ./site --verbose
 ```
 
 ### 9. Parallel Crawling for Large Sites
+
 ```bash
 # Default: 8 parallel workers
 smippo https://large-site.com --depth 5
@@ -426,6 +457,7 @@ smippo https://your-server.com --workers 16
 ## Technical Implementation
 
 ### Dependencies
+
 ```json
 {
   "dependencies": {
@@ -482,40 +514,40 @@ smippo/
 async function capture(url, options) {
   const browser = await chromium.launch();
   const context = await browser.newContext({
-    recordHar: { path: harPath }
+    recordHar: {path: harPath},
   });
-  
+
   const page = await context.newPage();
-  
+
   // Intercept and save resources
-  page.on('response', async (response) => {
+  page.on('response', async response => {
     await saveResource(response, options);
   });
-  
+
   // Navigate and wait for network idle
-  await page.goto(url, { waitUntil: options.wait });
-  
+  await page.goto(url, {waitUntil: options.wait});
+
   // Get rendered HTML
   const html = await page.content();
-  
+
   // Extract links for crawling
   const links = await extractLinks(page, options);
-  
+
   // Rewrite links for offline
   const rewrittenHtml = rewriteLinks(html, options);
-  
+
   // Save HTML
   await saveHtml(rewrittenHtml, url, options);
-  
+
   // Continue crawling if depth > 0
   if (options.depth > 0) {
     for (const link of links) {
       if (shouldFollow(link, options)) {
-        await capture(link, { ...options, depth: options.depth - 1 });
+        await capture(link, {...options, depth: options.depth - 1});
       }
     }
   }
-  
+
   await browser.close();
 }
 ```
@@ -526,27 +558,27 @@ async function capture(url, options) {
 
 ### Implemented from HTTrack
 
-| HTTrack Option | Smippo Equivalent |
-|----------------|-------------------|
-| `-rN` (depth) | `--depth N` |
-| `-O` (output path) | `-o, --output` |
-| `-w` (mirror) | default behavior |
-| `-g` (get files) | `--no-crawl` |
-| `-i` (continue) | `smippo continue` |
-| `-P` (proxy) | `--proxy` |
-| `-F` (user-agent) | `--user-agent` |
-| `-c` (connections) | `--workers` |
-| `-T` (timeout) | `--timeout` |
-| `-m` (max size) | `--max-size` |
-| `-E` (max time) | `--max-time` |
-| `-b` (cookies) | `--cookies` |
-| `-s` (robots.txt) | `--respect-robots` / `--ignore-robots` |
-| `-a` (stay on address) | `--scope subdomain` |
-| `-d` (stay on domain) | `--scope domain` |
-| `-e` (go everywhere) | `--scope all` |
-| `+pattern` / `-pattern` | `--include` / `--exclude` |
-| `-mime:type` | `--mime-include` / `--mime-exclude` |
-| `-N` (structure) | `--structure` |
+| HTTrack Option          | Smippo Equivalent                      |
+| ----------------------- | -------------------------------------- |
+| `-rN` (depth)           | `--depth N`                            |
+| `-O` (output path)      | `-o, --output`                         |
+| `-w` (mirror)           | default behavior                       |
+| `-g` (get files)        | `--no-crawl`                           |
+| `-i` (continue)         | `smippo continue`                      |
+| `-P` (proxy)            | `--proxy`                              |
+| `-F` (user-agent)       | `--user-agent`                         |
+| `-c` (connections)      | `--workers`                            |
+| `-T` (timeout)          | `--timeout`                            |
+| `-m` (max size)         | `--max-size`                           |
+| `-E` (max time)         | `--max-time`                           |
+| `-b` (cookies)          | `--cookies`                            |
+| `-s` (robots.txt)       | `--respect-robots` / `--ignore-robots` |
+| `-a` (stay on address)  | `--scope subdomain`                    |
+| `-d` (stay on domain)   | `--scope domain`                       |
+| `-e` (go everywhere)    | `--scope all`                          |
+| `+pattern` / `-pattern` | `--include` / `--exclude`              |
+| `-mime:type`            | `--mime-include` / `--mime-exclude`    |
+| `-N` (structure)        | `--structure`                          |
 
 ### Not Implemented (by design)
 
@@ -575,36 +607,40 @@ async function capture(url, options) {
 ## Distribution
 
 ### npm (Global)
+
 ```bash
 npm install -g smippo
 smippo https://example.com
 ```
 
 ### npx (No install)
+
 ```bash
 npx smippo https://example.com
 ```
 
 ### Homebrew (macOS/Linux)
+
 ```bash
 brew install smippo
 smippo https://example.com
 ```
 
 ### Formula structure:
+
 ```ruby
 class Smippo < Formula
   desc "Modern website copier powered by Playwright"
   homepage "https://github.com/username/smippo"
   url "https://registry.npmjs.org/smippo/-/smippo-0.0.1.tgz"
   license "MIT"
-  
+
   depends_on "node"
-  
+
   def install
     system "npm", "install", *Language::Node.std_npm_install_args(libexec)
     bin.install_symlink Dir["#{libexec}/bin/*"]
-    
+
     # Install Playwright browsers
     system "npx", "playwright", "install", "chromium"
   end
@@ -616,6 +652,7 @@ end
 ## Roadmap
 
 ### v0.0.1 - Beta (Current)
+
 - [x] Single page capture
 - [x] Recursive crawling with depth control
 - [x] Resource saving (images, CSS, JS, fonts)
@@ -636,12 +673,14 @@ end
 - [x] Beautiful CLI with progress indicators
 
 ### v0.1.0 - Stability
+
 - [ ] Cache system refinement
 - [ ] Continue/resume interrupted captures
 - [ ] Update existing mirrors
 - [ ] Error recovery improvements
 
 ### v0.2.0 - Advanced Features
+
 - [ ] Cookie support
 - [ ] Proxy support
 - [ ] Custom headers
@@ -649,6 +688,7 @@ end
 - [ ] Device emulation improvements
 
 ### v1.0.0 - Production Ready
+
 - [ ] Homebrew formula
 - [ ] Docker image
 - [ ] GitHub Actions integration
@@ -669,4 +709,3 @@ MIT License
 - [Playwright Documentation](https://playwright.dev/docs/intro)
 - [HAR 1.2 Specification](http://www.softwareishard.com/blog/har-12-spec/)
 - [robots.txt Standard](https://www.robotstxt.org/robotstxt.html)
-

@@ -18,11 +18,11 @@ export function manifestExists(outputDir) {
  */
 export async function readManifest(outputDir) {
   const manifestPath = path.join(outputDir, SMIPPO_DIR, MANIFEST_FILE);
-  
+
   if (!fs.existsSync(manifestPath)) {
     return null;
   }
-  
+
   const content = await fs.readFile(manifestPath, 'utf8');
   return JSON.parse(content);
 }
@@ -33,7 +33,7 @@ export async function readManifest(outputDir) {
 export async function writeManifest(outputDir, manifest) {
   const smippoDir = path.join(outputDir, SMIPPO_DIR);
   const manifestPath = path.join(smippoDir, MANIFEST_FILE);
-  
+
   await fs.ensureDir(smippoDir);
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
 }
@@ -43,15 +43,15 @@ export async function writeManifest(outputDir, manifest) {
  */
 export async function readCache(outputDir) {
   const cachePath = path.join(outputDir, SMIPPO_DIR, CACHE_FILE);
-  
+
   if (!fs.existsSync(cachePath)) {
     return {
       etags: {},
       lastModified: {},
-      contentTypes: {}
+      contentTypes: {},
     };
   }
-  
+
   const content = await fs.readFile(cachePath, 'utf8');
   return JSON.parse(content);
 }
@@ -62,7 +62,7 @@ export async function readCache(outputDir) {
 export async function writeCache(outputDir, cache) {
   const smippoDir = path.join(outputDir, SMIPPO_DIR);
   const cachePath = path.join(smippoDir, CACHE_FILE);
-  
+
   await fs.ensureDir(smippoDir);
   await fs.writeFile(cachePath, JSON.stringify(cache, null, 2), 'utf8');
 }
@@ -83,18 +83,18 @@ export function createManifest(url, options) {
       externalAssets: options.externalAssets,
       filters: {
         include: options.include || [],
-        exclude: options.exclude || []
-      }
+        exclude: options.exclude || [],
+      },
     },
     stats: {
       pagesCapt: 0,
       assetsCapt: 0,
       totalSize: 0,
       duration: 0,
-      errors: 0
+      errors: 0,
     },
     pages: [],
-    assets: []
+    assets: [],
   };
 }
 
@@ -108,9 +108,9 @@ export function addPageToManifest(manifest, page) {
     status: page.status || 200,
     captured: new Date().toISOString(),
     size: page.size,
-    title: page.title
+    title: page.title,
   });
-  
+
   manifest.stats.pagesCapt++;
   manifest.stats.totalSize += page.size || 0;
   manifest.updated = new Date().toISOString();
@@ -124,9 +124,9 @@ export function addAssetToManifest(manifest, asset) {
     url: asset.url,
     localPath: asset.localPath,
     mimeType: asset.mimeType,
-    size: asset.size
+    size: asset.size,
   });
-  
+
   manifest.stats.assetsCapt++;
   manifest.stats.totalSize += asset.size || 0;
   manifest.updated = new Date().toISOString();
@@ -161,4 +161,3 @@ export function getHarPath(outputDir) {
 export function getLogPath(outputDir) {
   return path.join(outputDir, SMIPPO_DIR, 'log.txt');
 }
-
