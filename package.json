@@ -1,7 +1,7 @@
 {
   "name": "smippo",
   "version": "0.0.1",
-  "description": "Modern website copier powered by Playwright - capture JS-rendered pages for offline viewing",
+  "description": "S.M.I.P.P.O. — Structured Mirroring of Internet Pages and Public Objects. Modern website copier that captures sites exactly as they appear in your browser.",
   "main": "src/index.js",
   "bin": {
     "smippo": "./bin/smippo.js"
@@ -9,9 +9,19 @@
   "type": "module",
   "scripts": {
     "start": "node bin/smippo.js",
-    "postinstall": "npx playwright install chromium",
+    "dev": "node bin/smippo.js",
+    "test": "mocha",
+    "test:unit": "mocha 'test/**/*.test.js'",
+    "test:integration": "mocha 'test/integration/**/*.test.js'",
+    "test:watch": "mocha --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky install",
+    "postinstall": "npx playwright install chromium",
+    "prepublishOnly": "npm run lint && npm run format:check && npm test"
   },
   "keywords": [
     "website",
@@ -22,14 +32,40 @@
     "playwright",
     "crawler",
     "scraper",
-    "httrack",
     "archiver",
-    "smippo"
+    "smippo",
+    "website-mirror",
+    "site-copier",
+    "web-scraper",
+    "offline-browsing"
   ],
-  "author": "",
+  "author": "Pouyan Afisi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pouyanafisi/smippo_temp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pouyanafisi/smippo_temp/issues"
+  },
+  "homepage": "https://smippo.dev",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
@@ -49,6 +85,10 @@
     "robots-parser": "^3.0.1"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "mocha": "^10.4.0",
     "prettier": "^3.2.5"
   }
 }

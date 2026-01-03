@@ -96,7 +96,7 @@ npx smippo https://example.com
 ### Requirements
 
 - Node.js 18 or later
-- Chromium (automatically installed via Playwright)
+- Chromium (automatically downloaded on first install)
 
 ### npm (Global)
 
@@ -411,13 +411,21 @@ await server.close();
 
 Contributions are welcome! Whether it's bug reports, feature requests, or pull requests — all contributions help make Smippo better.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
 
-Please make sure to run `npm run format` before submitting.
+- Development setup
+- Code style guidelines
+- Pull request process
+- Testing requirements
+
+Quick start:
+
+```bash
+git clone https://github.com/pouyanafisi/smippo_temp.git
+cd smippo
+npm install
+npm test
+```
 
 ## License
 
@@ -425,5 +433,6 @@ Please make sure to run `npm run format` before submitting.
 
 ## Acknowledgments
 
-- Inspired by [HTTrack](https://www.httrack.com/)
-- Powered by [Playwright](https://playwright.dev/)
+- Built with [Playwright](https://playwright.dev/) for reliable browser automation
+- CLI powered by [Commander.js](https://github.com/tj/commander.js) and [@clack/prompts](https://github.com/natemoo-re/clack)
+- Inspired by classic website copiers like [HTTrack](https://www.httrack.com/)

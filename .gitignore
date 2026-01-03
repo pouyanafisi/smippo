@@ -1,13 +1,50 @@
-site/
+# Dependencies
 node_modules/
 package-lock.json
-*.min.js
-*.bundle.js
-coverage/
+
+# Build outputs
 dist/
 build/
-.git/
-*.log
 
-# Website lives in its own repo (smippo-website)
+# Test outputs
+coverage/
+.nyc_output/
+
+# Captured sites (output)
+site/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Bundled/minified files
+*.min.js
+*.bundle.js
+
+# Playwright
+playwright-report/
+test-results/
+
+# Website (separate repo)
 website/
+
+# Parcel (comparison only, to be removed)
+parcel/

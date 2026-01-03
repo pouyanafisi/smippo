@@ -1,31 +1,11 @@
 {
-	"printWidth": 120,
-	"tabWidth": 4,
-	"useTabs": true,
 	"semi": true,
 	"singleQuote": true,
-	"quoteProps": "as-needed",
+	"tabWidth": 2,
+	"useTabs": true,
 	"trailingComma": "es5",
-	"bracketSameLine": true,
 	"bracketSpacing": true,
 	"arrowParens": "avoid",
 	"endOfLine": "lf",
-	"overrides": [
-		{
-			"files": "*.md",
-			"options": {
-				"parser": "markdown",
-				"proseWrap": "preserve",
-				"printWidth": 120,
-				"tabWidth": 2
-			}
-		},
-		{
-			"files": "*.yaml",
-			"options": {
-				"parser": "yaml",
-				"tabWidth": 2
-			}
-		}
-	]
+	"printWidth": 100
 }
