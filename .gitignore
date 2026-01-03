@@ -8,3 +8,6 @@ dist/
 build/
 .git/
 *.log
+
+# Website lives in its own repo (smippo-website)
+website/

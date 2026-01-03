@@ -1,6 +1,8 @@
 # Smippo
 
-> Modern website copier powered by Playwright — capture JS-rendered pages for offline viewing
+> **S.M.I.P.P.O.** = Structured Mirroring of Internet Pages and Public Objects
+
+> Modern website copier — consumes everything fast. Hippos don't nibble. They vacuum.
 
 [![npm version](https://img.shields.io/npm/v/smippo?color=cb0000&label=npm)](https://www.npmjs.com/package/smippo)
 [![npm downloads](https://img.shields.io/npm/dm/smippo?color=cb0000)](https://www.npmjs.com/package/smippo)
@@ -10,7 +12,9 @@
 
 ---
 
-Smippo is a modern alternative to [HTTrack](https://www.httrack.com/) that captures websites as they appear **after JavaScript execution**. Unlike traditional web crawlers that fetch raw HTML, Smippo renders pages in a real Chromium browser, waits for network activity to settle, then captures the fully rendered DOM and all network artifacts.
+**S.M.I.P.P.O.** (Structured Mirroring of Internet Pages and Public Objects) is a modern website copier that captures websites exactly as they appear in your browser. Unlike traditional crawlers that nibble at raw HTML, Smippo vacuums up everything—rendering pages in a real browser, intercepting all network requests, and creating structured offline mirrors with complete fidelity.
+
+Hippos don't nibble. They vacuum. Smippo follows the same principle: parallel workers consume entire sites rapidly, capturing every resource, every network request, and every rendered element in a structured, organized mirror.
 
 ## Table of Contents
 
@@ -31,11 +35,11 @@ Smippo is a modern alternative to [HTTrack](https://www.httrack.com/) that captu
     - [Screenshots](#screenshots)
     - [Authentication](#authentication)
     - [Output Options](#output-options)
-    - [Performance \& Parallelism](#performance--parallelism)
+    - [Performance \& Parallelism: The Vacuum Architecture](#performance--parallelism-the-vacuum-architecture)
     - [Continue/Update](#continueupdate)
     - [Serve](#serve)
     - [Static Mode](#static-mode)
-  - [Output Structure](#output-structure)
+  - [Structured Output](#structured-output)
   - [Comparison with HTTrack](#comparison-with-httrack)
   - [Programmatic API](#programmatic-api)
   - [Contributing](#contributing)
@@ -44,28 +48,33 @@ Smippo is a modern alternative to [HTTrack](https://www.httrack.com/) that captu
 
 ## Features
 
-- **🚀 JavaScript Support** — Captures any website including SPAs, dynamic sites, and JS-rendered pages
-- **📸 Full Fidelity** — Gets the page exactly as you see it, including CSS-in-JS, dynamic content, and lazy-loaded images
-- **🔍 HAR Files** — Generates HTTP Archive files for debugging and replay
-- **🎯 Smart Crawling** — Respects robots.txt, filters by URL patterns, MIME types, and file sizes
-- **📦 Offline Ready** — Rewrites all links for seamless offline browsing
+- **🚀 Vacuum Architecture** — Parallel workers consume sites rapidly, just like hippos vacuum up everything in their path
+- **📸 Structured Mirroring** — Every page, every resource, every network request captured in organized, structured output
+- **🔍 Complete Fidelity** — Gets the page exactly as you see it, including CSS-in-JS, dynamic content, and lazy-loaded images
+- **🎯 Smart Consumption** — Respects robots.txt, filters by URL patterns, MIME types, and file sizes
+- **📦 Structured Output** — Organized mirror structure preserves original paths for seamless offline browsing
 - **🎨 Beautiful CLI** — Interactive guided mode, progress bars, and elegant terminal output
 - **🌐 Built-in Server** — Serve captured sites locally with directory browsing
+- **📊 HAR Files** — Generates HTTP Archive files for debugging and replay
 
 ## Quick Start
 
+Install globally:
+
 ```bash
-# Install globally
 npm install -g smippo
+```
 
-# Capture a single page
+Capture a single page:
+
+```bash
 smippo https://example.com
+```
 
-# Mirror a site (3 levels deep)
+Mirror a site (3 levels deep):
+
+```bash
 smippo https://example.com --depth 3
-
-# Capture with screenshots
-smippo https://example.com --screenshot
 ```
 
 Or use without installing:
@@ -233,12 +242,12 @@ smippo https://example.com --structure flat      # All in one directory
 smippo https://example.com --structure domain    # Organized by domain
 ```
 
-### Performance & Parallelism
+### Performance & Parallelism: The Vacuum Architecture
 
-Smippo uses parallel workers to crawl multiple pages simultaneously, similar to [Playwright's parallelism](https://playwright.dev/docs/test-parallel).
+Smippo's parallel worker architecture mirrors how hippos consume everything in their path—rapidly and efficiently. Multiple workers operate simultaneously, each vacuuming up pages, resources, and network requests in parallel.
 
 ```bash
-# Default: 8 parallel workers
+# Default: 8 parallel workers (8 hippos vacuuming simultaneously)
 smippo https://example.com
 
 # Limit to 4 workers (for rate-limited sites)
@@ -259,6 +268,17 @@ smippo https://example.com --max-time 300  # 5 minutes
 # Rate limiting (delay between requests per worker)
 smippo https://example.com --rate-limit 1000  # 1 second between requests
 ```
+
+**The Vacuum Architecture:**
+
+Each worker operates like an independent hippo, vacuuming up:
+
+- Fully rendered pages (after JavaScript execution)
+- All network resources (images, fonts, stylesheets, API responses)
+- Network metadata (captured in HAR files)
+- Link structures (for recursive crawling)
+
+All captured content is then **structured** into organized mirrors that preserve original paths and relationships.
 
 **Tips for optimal performance:**
 
@@ -314,9 +334,9 @@ smippo https://example.com --static --external-assets
 smippo serve ./site --open
 ```
 
-## Output Structure
+## Structured Output
 
-By default, Smippo preserves the original URL structure:
+Smippo creates **structured mirrors** that preserve the original URL structure and relationships. Every page, every resource, every network request is organized and stored in a logical hierarchy:
 
 ```
 site/
