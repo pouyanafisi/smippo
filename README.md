@@ -1,14 +1,24 @@
-# Smippo
+<p align="center">
+  <img src="assets/logo.svg" alt="Smippo Logo" width="120" height="100">
+</p>
 
-> **S.M.I.P.P.O.** = Structured Mirroring of Internet Pages and Public Objects
+<h1 align="center">Smippo</h1>
 
-> Modern website copier — consumes everything fast. Hippos don't nibble. They vacuum.
+<p align="center">
+  <strong>S.M.I.P.P.O.</strong> = Structured Mirroring of Internet Pages and Public Objects
+</p>
 
-[![npm version](https://img.shields.io/npm/v/smippo?color=cb0000&label=npm)](https://www.npmjs.com/package/smippo)
-[![npm downloads](https://img.shields.io/npm/dm/smippo?color=cb0000)](https://www.npmjs.com/package/smippo)
-[![license](https://img.shields.io/npm/l/smippo?color=blue)](./LICENSE)
-[![node](https://img.shields.io/node/v/smippo?color=339933)](https://nodejs.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/pouyanafisi/smippo_temp/pulls)
+<p align="center">
+  Modern website copier — consumes everything fast. Hippos don't nibble. They vacuum.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/smippo"><img src="https://img.shields.io/npm/v/smippo?color=cb0000&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/smippo"><img src="https://img.shields.io/npm/dm/smippo?color=cb0000" alt="npm downloads"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/smippo?color=blue" alt="license"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/smippo?color=339933" alt="node"></a>
+  <a href="https://github.com/pouyanafisi/smippo_temp/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+</p>
 
 ---
 
