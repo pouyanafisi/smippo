@@ -1,26 +1,56 @@
 # Smippo
 
-> Modern website copier powered by Playwright - capture JS-rendered pages for offline viewing
+> Modern website copier powered by Playwright — capture JS-rendered pages for offline viewing
 
-<p align="center">
-  <img src="https://img.shields.io/npm/v/smippo" alt="npm version">
-  <img src="https://img.shields.io/npm/l/smippo" alt="license">
-  <img src="https://img.shields.io/node/v/smippo" alt="node version">
-</p>
+[![npm version](https://img.shields.io/npm/v/smippo?color=cb0000&label=npm)](https://www.npmjs.com/package/smippo)
+[![npm downloads](https://img.shields.io/npm/dm/smippo?color=cb0000)](https://www.npmjs.com/package/smippo)
+[![license](https://img.shields.io/npm/l/smippo?color=blue)](./LICENSE)
+[![node](https://img.shields.io/node/v/smippo?color=339933)](https://nodejs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/pouyanafisi/smippo_temp/pulls)
 
-## What is Smippo?
+---
 
 Smippo is a modern alternative to [HTTrack](https://www.httrack.com/) that captures websites as they appear **after JavaScript execution**. Unlike traditional web crawlers that fetch raw HTML, Smippo renders pages in a real Chromium browser, waits for network activity to settle, then captures the fully rendered DOM and all network artifacts.
 
-### Why Smippo?
+## Table of Contents
 
-- **🚀 JavaScript Support**: Captures any website including SPAs, dynamic sites, and JS-rendered pages
-- **📸 Full Fidelity**: Gets the page exactly as you see it, including CSS-in-JS, dynamic content, and lazy-loaded images
-- **🔍 HAR Files**: Generates HTTP Archive files for debugging and replay
-- **🎯 Smart Crawling**: Respects robots.txt, filters by URL patterns, MIME types, and file sizes
-- **📦 Offline Ready**: Rewrites all links for seamless offline browsing
-- **🎨 Beautiful CLI**: Interactive guided mode, progress bars, and elegant terminal output
-- **🌐 Built-in Server**: Serve captured sites locally with directory browsing
+- [Smippo](#smippo)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Quick Start](#quick-start)
+  - [Installation](#installation)
+    - [Requirements](#requirements)
+    - [npm (Global)](#npm-global)
+    - [Homebrew (Coming soon)](#homebrew-coming-soon)
+  - [Usage](#usage)
+    - [Basic Usage](#basic-usage)
+    - [Interactive Mode](#interactive-mode)
+    - [Filtering](#filtering)
+    - [Scope Control](#scope-control)
+    - [Browser Options](#browser-options)
+    - [Screenshots](#screenshots)
+    - [Authentication](#authentication)
+    - [Output Options](#output-options)
+    - [Performance \& Parallelism](#performance--parallelism)
+    - [Continue/Update](#continueupdate)
+    - [Serve](#serve)
+    - [Static Mode](#static-mode)
+  - [Output Structure](#output-structure)
+  - [Comparison with HTTrack](#comparison-with-httrack)
+  - [Programmatic API](#programmatic-api)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+
+## Features
+
+- **🚀 JavaScript Support** — Captures any website including SPAs, dynamic sites, and JS-rendered pages
+- **📸 Full Fidelity** — Gets the page exactly as you see it, including CSS-in-JS, dynamic content, and lazy-loaded images
+- **🔍 HAR Files** — Generates HTTP Archive files for debugging and replay
+- **🎯 Smart Crawling** — Respects robots.txt, filters by URL patterns, MIME types, and file sizes
+- **📦 Offline Ready** — Rewrites all links for seamless offline browsing
+- **🎨 Beautiful CLI** — Interactive guided mode, progress bars, and elegant terminal output
+- **🌐 Built-in Server** — Serve captured sites locally with directory browsing
 
 ## Quick Start
 
@@ -43,24 +73,6 @@ Or use without installing:
 ```bash
 npx smippo https://example.com
 ```
-
-### Interactive Mode
-
-Just run `smippo` with no arguments to start the guided wizard:
-
-```bash
-smippo
-```
-
-This will walk you through:
-
-- URL to capture
-- Crawl depth
-- Scope settings
-- Asset options
-- Advanced configuration
-
-Perfect for beginners or when you want to explore options!
 
 ## Installation
 
@@ -95,6 +107,24 @@ smippo https://example.com --depth 3
 # Save to custom directory
 smippo https://example.com --output ./my-mirror
 ```
+
+### Interactive Mode
+
+Just run `smippo` with no arguments to start the guided wizard:
+
+```bash
+smippo
+```
+
+This will walk you through:
+
+- URL to capture
+- Crawl depth
+- Scope settings
+- Asset options
+- Advanced configuration
+
+Perfect for beginners or when you want to explore options!
 
 ### Filtering
 
@@ -267,10 +297,10 @@ smippo serve ./site --verbose
 
 The server provides:
 
-- **Auto port detection** - Finds next available port if default is busy
-- **Proper MIME types** - Correct content-type headers for all file types
-- **CORS support** - Enabled by default for local development
-- **Nice terminal UI** - Shows clickable URL and request logs
+- **Auto port detection** — Finds next available port if default is busy
+- **Proper MIME types** — Correct content-type headers for all file types
+- **CORS support** — Enabled by default for local development
+- **Nice terminal UI** — Shows clickable URL and request logs
 
 ### Static Mode
 
@@ -301,7 +331,7 @@ site/
 │   ├── cache.json          # Metadata cache
 │   ├── network.har         # HAR file
 │   ├── manifest.json       # Capture manifest
-│   └── log.txt            # Capture log
+│   └── log.txt             # Capture log
 └── index.html              # Entry point
 ```
 
@@ -363,9 +393,21 @@ console.log(`Server running at ${server.url}`);
 await server.close();
 ```
 
+## Contributing
+
+Contributions are welcome! Whether it's bug reports, feature requests, or pull requests — all contributions help make Smippo better.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please make sure to run `npm run format` before submitting.
+
 ## License
 
-MIT
+[MIT](./LICENSE) — feel free to use this in your own projects.
 
 ## Acknowledgments
 
