@@ -17,14 +17,12 @@
   <a href="https://www.npmjs.com/package/smippo"><img src="https://img.shields.io/npm/dm/smippo?color=cb0000" alt="npm downloads"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/npm/l/smippo?color=blue" alt="license"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/smippo?color=339933" alt="node"></a>
-  <a href="https://github.com/pouyanafisi/smippo_temp/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+  <a href="https://github.com/pouyanafisi/smippo/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 </p>
 
 ---
 
-**S.M.I.P.P.O.** (Structured Mirroring of Internet Pages and Public Objects) is a modern website copier that captures websites exactly as they appear in your browser. Unlike traditional crawlers that nibble at raw HTML, Smippo vacuums up everything—rendering pages in a real browser, intercepting all network requests, and creating structured offline mirrors with complete fidelity.
-
-Hippos don't nibble. They vacuum. Smippo follows the same principle: parallel workers consume entire sites rapidly, capturing every resource, every network request, and every rendered element in a structured, organized mirror.
+**S.M.I.P.P.O.** (Structured Mirroring of Internet Pages and Public Objects) is a command-line website copier and scraper that captures websites exactly as they appear in your browser. Create complete offline mirrors with all assets, styles, and dynamic content preserved. Perfect for website duplication, archiving, and offline browsing.
 
 ## Table of Contents
 
@@ -421,7 +419,7 @@ Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
 Quick start:
 
 ```bash
-git clone https://github.com/pouyanafisi/smippo_temp.git
+git clone https://github.com/pouyanafisi/smippo.git
 cd smippo
 npm install
 npm test

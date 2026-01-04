@@ -205,9 +205,9 @@ smippo/
 
 ## Need Help?
 
-- 💬 [GitHub Discussions](https://github.com/pouyanafisi/smippo_temp/discussions) — Questions & help
+- 💬 [GitHub Discussions](https://github.com/pouyanafisi/smippo/discussions) — Questions & help
 - 📖 [Documentation](https://smippo.dev) — User guides
-- 🐛 [Issues](https://github.com/pouyanafisi/smippo_temp/issues) — Bug reports
+- 🐛 [Issues](https://github.com/pouyanafisi/smippo/issues) — Bug reports
 
 ## Thank You!
 
