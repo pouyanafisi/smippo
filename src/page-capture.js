@@ -1,6 +1,5 @@
 // @flow
 import {extractLinks} from './link-extractor.js';
-import {rewriteLinks} from './link-rewriter.js';
 
 /**
  * Capture a single page with all its rendered content

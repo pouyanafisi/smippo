@@ -135,7 +135,7 @@ export function addAssetToManifest(manifest, asset) {
 /**
  * Record an error in manifest
  */
-export function addErrorToManifest(manifest, url, error) {
+export function addErrorToManifest(manifest, _url, _error) {
   manifest.stats.errors++;
   manifest.updated = new Date().toISOString();
 }

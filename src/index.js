@@ -52,8 +52,9 @@ export async function capture(url, options = {}) {
 /**
  * Default export
  */
+const {createServer} = await import('./server.js');
 export default {
   capture,
-  Crawler,
+  Crawler: (await import('./crawler.js')).Crawler,
   createServer,
 };

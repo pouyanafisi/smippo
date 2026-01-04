@@ -356,9 +356,7 @@ export class Crawler extends EventEmitter {
    * Rewrite URLs in CSS files to point to local files
    */
   async _rewriteCssFiles(resources, urlMap) {
-    const {urlToPath} = await import('./utils/url.js');
-    const {getRelativePath, joinPath, sanitizePath} =
-      await import('./utils/path.js');
+    const {joinPath, sanitizePath} = await import('./utils/path.js');
 
     for (const [resourceUrl, resource] of resources) {
       const contentType = resource.contentType || '';

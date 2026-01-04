@@ -196,20 +196,22 @@ export function urlToPath(url, structure = 'original') {
     }
 
     switch (structure) {
-      case 'flat':
+      case 'flat': {
         // Flatten to single directory with hashed names
         const flatName = pathname.replace(/\//g, '-').replace(/^-/, '');
         return flatName;
+      }
 
       case 'domain':
         // Include full hostname
         return `${parsed.hostname}${pathname}`;
 
       case 'original':
-      default:
+      default: {
         // Include hostname without www
         const host = parsed.hostname.replace(/^www\./, '');
         return `${host}${pathname}`;
+      }
     }
   } catch {
     return 'unknown/index.html';

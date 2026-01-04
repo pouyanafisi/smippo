@@ -381,8 +381,9 @@ export function shouldRunInteractive(args) {
   const hasUrlOrCommand = args.some(arg => {
     if (arg.startsWith('-')) return false;
     if (arg.startsWith('http://') || arg.startsWith('https://')) return true;
-    if (['capture', 'serve', 'continue', 'update', 'help'].includes(arg))
+    if (['capture', 'serve', 'continue', 'update', 'help'].includes(arg)) {
       return true;
+    }
     return false;
   });
 

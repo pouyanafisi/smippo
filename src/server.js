@@ -2,7 +2,6 @@
 import http from 'http';
 import fs from 'fs-extra';
 import path from 'path';
-import {createRequire} from 'module';
 import chalk from 'chalk';
 import {exec} from 'child_process';
 
@@ -126,7 +125,9 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
   if (await fs.pathExists(manifestPath)) {
     try {
       siteInfo = await fs.readJson(manifestPath);
-    } catch {}
+    } catch {
+      // Ignore manifest read errors
+    }
   }
 
   const isRoot = urlPath === '/' || urlPath === '';
@@ -355,7 +356,7 @@ export async function createServer(options = {}) {
     const startTime = Date.now();
 
     // Parse URL and decode
-    let urlPath = decodeURIComponent(req.url.split('?')[0]);
+    const urlPath = decodeURIComponent(req.url.split('?')[0]);
 
     // Build file path
     let filePath = path.join(rootDir, urlPath);

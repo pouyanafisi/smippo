@@ -119,19 +119,19 @@ export async function captureScreenshot(url, options = {}) {
     }
 
     // Take screenshot
-    let screenshotBuffer;
     if (selector) {
       // Element screenshot
       if (verbose) console.log(chalk.dim(`  Capturing element: ${selector}`));
       const element = page.locator(selector);
-      screenshotBuffer = await element.screenshot(screenshotOptions);
+      await element.screenshot(screenshotOptions);
     } else {
       // Page screenshot
-      if (verbose)
+      if (verbose) {
         console.log(
           chalk.dim(`  Capturing ${fullPage ? 'full page' : 'viewport'}...`),
         );
-      screenshotBuffer = await page.screenshot(screenshotOptions);
+      }
+      await page.screenshot(screenshotOptions);
     }
 
     // Get file size
@@ -144,7 +144,9 @@ export async function captureScreenshot(url, options = {}) {
       console.log(chalk.dim(`  Size: ${fileSize}`));
       if (fullPage) {
         const dimensions = await page.evaluate(() => ({
+          // eslint-disable-next-line no-undef
           width: document.documentElement.scrollWidth,
+          // eslint-disable-next-line no-undef
           height: document.documentElement.scrollHeight,
         }));
         console.log(

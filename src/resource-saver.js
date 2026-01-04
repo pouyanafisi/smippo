@@ -30,7 +30,7 @@ export class ResourceSaver {
   /**
    * Save HTML content
    */
-  async saveHtml(url, html, options = {}) {
+  async saveHtml(url, html, _options = {}) {
     const relativePath = urlToPath(url, this.structure);
     const localPath = joinPath(this.outputDir, sanitizePath(relativePath));
 

@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const run = cmd => execSync(cmd, {encoding: 'utf8', cwd: __dirname});
-const bin = cmd => path.join(__dirname, 'node_modules/.bin', cmd);
 
 const sha = run('git rev-parse --short HEAD').trim();
 const version = JSON.parse(

@@ -6,12 +6,12 @@ import {urlToPath, resolveUrl} from './utils/url.js';
 /**
  * Rewrite links in HTML to point to local files
  */
-export function rewriteLinks(html, pageUrl, urlMap, options = {}) {
+export function rewriteLinks(html, pageUrl, urlMap, _options = {}) {
   const $ = load(html, {decodeEntities: false});
-  const pagePath = urlToPath(pageUrl, options.structure);
+  const pagePath = urlToPath(pageUrl, _options.structure);
 
   // Strip all scripts if --no-js flag is set
-  if (options.noJs) {
+  if (_options.noJs) {
     // Remove script tags
     $('script').remove();
     // Remove event handlers
@@ -123,7 +123,7 @@ export function rewriteLinks(html, pageUrl, urlMap, options = {}) {
     const srcset = $(el).attr('srcset');
     if (!srcset) return;
 
-    const newSrcset = rewriteSrcset(srcset, pageUrl, urlMap, options);
+    const newSrcset = rewriteSrcset(srcset, pageUrl, urlMap, _options);
     $(el).attr('srcset', newSrcset);
   });
 
@@ -174,14 +174,14 @@ export function rewriteLinks(html, pageUrl, urlMap, options = {}) {
   // Rewrite style attributes
   $('[style]').each((_, el) => {
     const style = $(el).attr('style');
-    const newStyle = rewriteCssUrls(style, pageUrl, urlMap, pagePath, options);
+    const newStyle = rewriteCssUrls(style, pageUrl, urlMap, pagePath, _options);
     $(el).attr('style', newStyle);
   });
 
   // Rewrite inline <style> tags
   $('style').each((_, el) => {
     const css = $(el).html();
-    const newCss = rewriteCssUrls(css, pageUrl, urlMap, pagePath, options);
+    const newCss = rewriteCssUrls(css, pageUrl, urlMap, pagePath, _options);
     $(el).html(newCss);
   });
 
@@ -191,7 +191,7 @@ export function rewriteLinks(html, pageUrl, urlMap, options = {}) {
 /**
  * Rewrite URLs in CSS content
  */
-export function rewriteCssUrls(css, baseUrl, urlMap, pagePath, options = {}) {
+export function rewriteCssUrls(css, baseUrl, urlMap, pagePath, _options = {}) {
   if (!css) return css;
 
   // Helper to find local path for a URL

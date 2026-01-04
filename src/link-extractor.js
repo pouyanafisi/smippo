@@ -5,7 +5,7 @@ import {resolveUrl, isLikelyPage} from './utils/url.js';
 /**
  * Extract all links from a page
  */
-export async function extractLinks(page, baseUrl, options = {}) {
+export async function extractLinks(page, baseUrl, _options = {}) {
   const html = await page.content();
   const $ = load(html);
 

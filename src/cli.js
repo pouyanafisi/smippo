@@ -7,7 +7,6 @@ import {readManifest, manifestExists} from './manifest.js';
 import {version} from './utils/version.js';
 import {
   showHelp,
-  showBanner,
   runInteractiveCapture,
   shouldRunInteractive,
 } from './interactive.js';
