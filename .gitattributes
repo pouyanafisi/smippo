@@ -1,0 +1,13 @@
+# Always use unix style line-endings
+* text eol=lf
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+

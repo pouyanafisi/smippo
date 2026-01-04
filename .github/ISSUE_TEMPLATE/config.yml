@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & Discussions
+    url: https://github.com/pouyanafisi/smippo_temp/discussions
+    about: Use GitHub Discussions for questions and help
+  - name: 📖 Documentation
+    url: https://smippo.dev
+    about: Check out our documentation

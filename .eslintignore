@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+lib/
+site/
+
+# Test outputs
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Cache
+.cache/
+*.log
+
+# Generated files
+*.min.js
+*.bundle.js
+
+# Other repos
+parcel/
+website/
+
+# Playwright
+playwright-report/
+test-results/
+
