@@ -13,6 +13,7 @@
 </p>
 
 <p align="center">
+  <a href="https://smippo.com"><img src="https://img.shields.io/badge/docs-smippo.com-blue" alt="Documentation"></a>
   <a href="https://www.npmjs.com/package/smippo"><img src="https://img.shields.io/npm/v/smippo?color=cb0000&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/smippo"><img src="https://img.shields.io/npm/dm/smippo?color=cb0000" alt="npm downloads"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/npm/l/smippo?color=blue" alt="license"></a>
@@ -23,6 +24,8 @@
 ---
 
 **S.M.I.P.P.O.** (Structured Mirroring of Internet Pages and Public Objects) is a command-line website copier and scraper that captures websites exactly as they appear in your browser. Create complete offline mirrors with all assets, styles, and dynamic content preserved. Perfect for website duplication, archiving, and offline browsing.
+
+📚 **[View complete documentation →](https://smippo.com)**
 
 ## Table of Contents
 
@@ -88,6 +91,8 @@ Or use without installing:
 ```bash
 npx smippo https://example.com
 ```
+
+> 📖 **For complete documentation, guides, and API reference, visit [smippo.com](https://smippo.com)**
 
 ## Installation
 
@@ -404,6 +409,8 @@ console.log(`Server running at ${server.url}`);
 // Later: stop the server
 await server.close();
 ```
+
+> 📖 **For complete API documentation, see the [Programmatic API guide](https://smippo.com/api-reference/programmatic-api) on smippo.com**
 
 ## Contributing
 
