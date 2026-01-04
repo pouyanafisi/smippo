@@ -1,5 +1,5 @@
 {
-  "name": "smippo",
+  "name": "@pouyanafisi/smippo",
   "version": "0.0.1",
   "description": "S.M.I.P.P.O. — Structured Mirroring of Internet Pages and Public Objects. Modern website copier that captures sites exactly as they appear in your browser.",
   "main": "src/index.js",
@@ -23,7 +23,8 @@
     "postinstall": "npx playwright install chromium",
     "prepublishOnly": "npm run lint && npm run format:check && npm test",
     "verdaccio": "verdaccio --config verdaccio.yml",
-    "verdaccio:publish": "node verdaccioPublish.js"
+    "verdaccio:publish": "node verdaccioPublish.js",
+    "publish:github": "npm publish --registry=https://npm.pkg.github.com"
   },
   "keywords": [
     "website",
@@ -43,14 +44,14 @@
   ],
   "author": "Pouyan Afisi",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pouyanafisi/smippo_temp.git"
-  },
+  "repository": "https://github.com/pouyanafisi/smippo",
   "bugs": {
-    "url": "https://github.com/pouyanafisi/smippo_temp/issues"
+    "url": "https://github.com/pouyanafisi/smippo/issues"
   },
   "homepage": "https://smippo.dev",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
