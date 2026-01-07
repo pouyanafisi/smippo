@@ -130,6 +130,11 @@ export function run() {
       '--no-reveal-all',
       'Disable force-reveal of scroll-triggered content',
     )
+    .option(
+      '--reduced-motion',
+      'Use prefers-reduced-motion for accessibility (default: true)',
+    )
+    .option('--no-reduced-motion', 'Disable reduced motion preference')
     .option('--user-agent <string>', 'Custom user agent')
     .option('--viewport <WxH>', 'Viewport size', '1920x1080')
     .option('--device <name>', 'Emulate device (e.g., "iPhone 13")')
@@ -256,6 +261,18 @@ export function run() {
       });
     });
 
+  // Delete command - remove captured sites
+  program
+    .command('delete')
+    .alias('rm')
+    .description('Delete captured sites from local storage')
+    .option('-a, --all', 'Delete all captured sites')
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async options => {
+      const {deleteSites} = await import('./delete.js');
+      await deleteSites(options);
+    });
+
   // Screenshot capture command
   program
     .command('capture <url>')
@@ -357,6 +374,7 @@ async function capture(url, options) {
     scrollDelay: parseInt(options.scrollDelay, 10),
     scrollBehavior: options.scrollBehavior,
     revealAll: options.revealAll,
+    reducedMotion: options.reducedMotion,
     userAgent: options.userAgent,
     viewport: parseViewport(options.viewport),
     device: options.device,

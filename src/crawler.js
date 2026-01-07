@@ -276,6 +276,7 @@ export class Crawler extends EventEmitter {
         scrollDelay: this.options.scrollDelay,
         scrollBehavior: this.options.scrollBehavior,
         revealAll: this.options.revealAll,
+        reducedMotion: this.options.reducedMotion,
       });
 
       const result = await capture.capture(url);

@@ -3,6 +3,8 @@ import {extractLinks} from './link-extractor.js';
 
 /**
  * Capture a single page with all its rendered content
+ * Uses best-in-class techniques including accessibility features,
+ * reduced motion, and human-like scrolling behavior
  */
 export class PageCapture {
   constructor(page, options = {}) {
@@ -21,6 +23,12 @@ export class PageCapture {
     this.page.on('response', async response => {
       await this._collectResource(response);
     });
+
+    // Step 0: Enable reduced motion to disable CSS animations (accessibility feature)
+    // This causes many sites to show final animation states immediately
+    if (this.options.reducedMotion !== false) {
+      await this.page.emulateMedia({reducedMotion: 'reduce'});
+    }
 
     // Navigate to the page
     try {
@@ -41,21 +49,33 @@ export class PageCapture {
       await this.page.waitForTimeout(waitTime);
     }
 
-    // Step 1: Force reveal all scroll-triggered content
+    // Step 1: Force all scroll-triggered animations to their END state (100% progress)
+    // This is different from killing them - we want their final visual state
     if (this.options.revealAll !== false) {
-      await this._revealAllContent();
+      await this._completeAllAnimations();
     }
 
-    // Step 2: Pre-scroll the page to trigger scroll animations
+    // Step 2: Human-like scrolling to trigger lazy content and intersection observers
     if (this.options.scroll !== false) {
-      await this._scrollPage();
+      await this._humanLikeScroll();
     }
 
-    // Step 3: Additional wait after scroll for animations to complete
+    // Step 3: Complete animations again after scroll (new elements may have appeared)
+    if (this.options.revealAll !== false) {
+      await this._completeAllAnimations();
+    }
+
+    // Step 4: Final wait for any remaining animations/network requests
     const scrollWait = this.options.scrollWait ?? 1000;
-    if (scrollWait > 0 && this.options.scroll !== false) {
+    if (scrollWait > 0) {
       await this.page.waitForTimeout(scrollWait);
     }
+
+    // Step 5: Wait for network to be truly idle (no pending requests)
+    await this._waitForNetworkIdle();
+
+    // Step 6: Force reveal any remaining hidden elements
+    await this._forceRevealHiddenElements();
 
     // Get the rendered HTML
     const html = await this.page.content();
@@ -167,30 +187,41 @@ export class PageCapture {
   }
 
   /**
-   * Pre-scroll the page to trigger scroll-based animations and lazy loading
-   * Performs smooth, incremental scrolling to trigger all scroll-based content
+   * Wait for network to be truly idle (no pending requests for a period)
    */
-  async _scrollPage() {
-    const scrollBehavior = this.options.scrollBehavior || 'smooth';
-    const scrollStep = this.options.scrollStep || 200; // pixels per step
-    const scrollDelay = this.options.scrollDelay || 50; // ms between steps
+  async _waitForNetworkIdle() {
+    try {
+      await this.page.waitForLoadState('networkidle', {timeout: 5000});
+    } catch {
+      // Timeout is ok, continue anyway
+    }
+  }
+
+  /**
+   * Human-like scrolling behavior with pauses and mouse movements
+   * Triggers intersection observers and lazy loading more naturally
+   */
+  async _humanLikeScroll() {
+    const scrollStep = this.options.scrollStep || 300;
+    const scrollDelay = this.options.scrollDelay || 100;
 
     /* eslint-disable no-undef */
     await this.page.evaluate(
-      async ({step, delay, behavior}) => {
-        // Helper for smooth scrolling with requestAnimationFrame
-        const smoothScroll = (targetY, duration = 300) => {
+      async ({step, delay}) => {
+        // Human-like smooth scroll with easing
+        const smoothScrollTo = (targetY, duration = 500) => {
           return new Promise(resolve => {
             const startY = window.scrollY;
             const distance = targetY - startY;
             const startTime = performance.now();
 
-            const animate = currentTime => {
-              const elapsed = currentTime - startTime;
-              const progress = Math.min(elapsed / duration, 1);
+            const easeInOutCubic = t =>
+              t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-              // Easing function (ease-out-cubic)
-              const eased = 1 - Math.pow(1 - progress, 3);
+            const animate = () => {
+              const elapsed = performance.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const eased = easeInOutCubic(progress);
 
               window.scrollTo(0, startY + distance * eased);
 
@@ -200,80 +231,69 @@ export class PageCapture {
                 resolve();
               }
             };
-
             requestAnimationFrame(animate);
           });
         };
 
-        // Get initial page height
-        let lastHeight = document.body.scrollHeight;
+        // Wait helper
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+
+        // Get viewport and page dimensions
+        const viewportHeight = window.innerHeight;
+        let pageHeight = document.body.scrollHeight;
         let currentY = 0;
+        let lastHeight = pageHeight;
 
-        // Phase 1: Scroll down incrementally
-        while (currentY < document.body.scrollHeight) {
-          const targetY = Math.min(currentY + step, document.body.scrollHeight);
+        // Phase 1: Scroll down slowly, pausing at each "section"
+        while (currentY < pageHeight) {
+          // Scroll one viewport at a time (like a human reading)
+          const targetY = Math.min(currentY + step, pageHeight);
+          await smoothScrollTo(targetY, delay * 3);
 
-          if (behavior === 'smooth') {
-            await smoothScroll(targetY, delay * 2);
+          // Pause longer at section boundaries (every viewport height)
+          if (
+            Math.floor(currentY / viewportHeight) !==
+            Math.floor(targetY / viewportHeight)
+          ) {
+            await wait(delay * 2); // Pause to "read" the section
           } else {
-            window.scrollTo(0, targetY);
+            await wait(delay);
           }
 
           currentY = targetY;
-          await new Promise(r => setTimeout(r, delay));
 
-          // Check if page height increased (lazy content loaded)
+          // Check for lazy-loaded content increasing page height
           const newHeight = document.body.scrollHeight;
           if (newHeight > lastHeight) {
+            pageHeight = newHeight;
             lastHeight = newHeight;
           }
         }
 
-        // Phase 2: Wait at bottom for any pending lazy loads
-        await new Promise(r => setTimeout(r, 500));
+        // Phase 2: Ensure we're at the very bottom
+        await smoothScrollTo(document.body.scrollHeight, 300);
+        await wait(500); // Wait at bottom
 
-        // Check if more content loaded while waiting
-        if (document.body.scrollHeight > lastHeight) {
-          // Scroll to the new bottom
-          if (behavior === 'smooth') {
-            await smoothScroll(document.body.scrollHeight, 300);
-          } else {
-            window.scrollTo(0, document.body.scrollHeight);
-          }
-          await new Promise(r => setTimeout(r, 300));
+        // Check one more time for lazy content
+        if (document.body.scrollHeight > pageHeight) {
+          await smoothScrollTo(document.body.scrollHeight, 300);
+          await wait(300);
         }
 
-        // Phase 3: Scroll back up slowly (some sites have scroll-up animations)
-        const scrollUpStep = step * 2; // Faster on the way up
-        currentY = window.scrollY;
-
-        while (currentY > 0) {
-          const targetY = Math.max(currentY - scrollUpStep, 0);
-
-          if (behavior === 'smooth') {
-            await smoothScroll(targetY, delay);
-          } else {
-            window.scrollTo(0, targetY);
-          }
-
-          currentY = targetY;
-          await new Promise(r => setTimeout(r, delay / 2));
-        }
-
-        // Phase 4: Return to top and wait
-        window.scrollTo(0, 0);
-        await new Promise(r => setTimeout(r, 200));
+        // Phase 3: Scroll back to top (faster)
+        await smoothScrollTo(0, 800);
+        await wait(300);
       },
-      {step: scrollStep, delay: scrollDelay, behavior: scrollBehavior},
+      {step: scrollStep, delay: scrollDelay},
     );
     /* eslint-enable no-undef */
   }
 
   /**
-   * Force reveal all scroll-triggered content by disabling/triggering
-   * common animation libraries like GSAP ScrollTrigger, AOS, etc.
+   * Complete all animations to their final state (100% progress)
+   * Instead of killing animations, we progress them to completion
    */
-  async _revealAllContent() {
+  async _completeAllAnimations() {
     /* eslint-disable no-undef */
     await this.page.evaluate(() => {
       // Helper to safely access nested properties
@@ -285,178 +305,224 @@ export class PageCapture {
         }
       };
 
-      // 1. GSAP ScrollTrigger - kill all triggers and show content
-      const ScrollTrigger = safeGet(window, 'ScrollTrigger');
-      if (ScrollTrigger) {
+      // 1. GSAP - Progress ALL tweens and timelines to 100%
+      const gsap = safeGet(window, 'gsap');
+      if (gsap) {
         try {
-          // Get all ScrollTrigger instances
-          const triggers = ScrollTrigger.getAll?.() || [];
-          triggers.forEach(trigger => {
+          // Get all global tweens and progress them to end
+          const tweens =
+            gsap.globalTimeline?.getChildren?.(true, true, true) || [];
+          tweens.forEach(tween => {
             try {
-              // Kill the trigger to prevent it from hiding content
-              trigger.kill?.();
+              // Progress to 100% (end state)
+              tween.progress?.(1, true);
+              // Also try totalProgress for timelines
+              tween.totalProgress?.(1, true);
             } catch (e) {
               /* ignore */
             }
           });
-          // Refresh to ensure proper state
-          ScrollTrigger.refresh?.();
         } catch (e) {
           /* ignore */
         }
       }
 
-      // Also check for gsap.ScrollTrigger
-      const gsapScrollTrigger = safeGet(window, 'gsap.ScrollTrigger');
-      if (gsapScrollTrigger && gsapScrollTrigger !== ScrollTrigger) {
+      // 2. GSAP ScrollTrigger - Progress all triggers to their END state
+      const ScrollTrigger =
+        safeGet(window, 'ScrollTrigger') ||
+        safeGet(window, 'gsap.ScrollTrigger');
+      if (ScrollTrigger) {
         try {
-          const triggers = gsapScrollTrigger.getAll?.() || [];
-          triggers.forEach(trigger => trigger.kill?.());
-        } catch (e) {
-          /* ignore */
-        }
-      }
+          const triggers = ScrollTrigger.getAll?.() || [];
+          triggers.forEach(trigger => {
+            try {
+              // Progress the trigger to 100% (fully scrolled past)
+              if (trigger.animation) {
+                trigger.animation.progress?.(1, true);
+                trigger.animation.totalProgress?.(1, true);
+              }
+              // Also set the trigger's own progress
+              trigger.progress?.(1, true);
 
-      // 2. AOS (Animate On Scroll) - reveal all elements
-      const AOS = safeGet(window, 'AOS');
-      if (AOS) {
-        try {
-          // Disable AOS and show all elements
-          document.querySelectorAll('[data-aos]').forEach(el => {
-            el.classList.add('aos-animate');
-            el.style.opacity = '1';
-            el.style.transform = 'none';
-            el.style.visibility = 'visible';
+              // Disable the trigger so it doesn't reset
+              trigger.disable?.();
+            } catch (e) {
+              /* ignore */
+            }
           });
+
+          // Don't refresh - we want to keep the end states
         } catch (e) {
           /* ignore */
         }
       }
 
-      // 3. WOW.js - reveal all elements
+      // 3. Web Animations API - Complete all animations
+      document.getAnimations?.().forEach(animation => {
+        try {
+          animation.finish();
+        } catch (e) {
+          try {
+            animation.currentTime =
+              animation.effect?.getTiming?.()?.duration || 0;
+          } catch (e2) {
+            /* ignore */
+          }
+        }
+      });
+
+      // 4. AOS - Mark all as animated
+      document.querySelectorAll('[data-aos]').forEach(el => {
+        el.classList.add('aos-animate');
+        el.setAttribute('data-aos-animate', 'true');
+      });
+
+      // 5. WOW.js elements
       document.querySelectorAll('.wow').forEach(el => {
         el.classList.add('animated');
         el.style.visibility = 'visible';
-        el.style.opacity = '1';
-        el.style.animationName = 'none';
       });
 
-      // 4. ScrollReveal - reveal all elements
-      const ScrollReveal = safeGet(window, 'ScrollReveal');
-      if (ScrollReveal) {
-        try {
-          document.querySelectorAll('[data-sr-id]').forEach(el => {
-            el.style.visibility = 'visible';
-            el.style.opacity = '1';
-            el.style.transform = 'none';
-          });
-        } catch (e) {
-          /* ignore */
-        }
+      // 6. ScrollReveal elements
+      document.querySelectorAll('[data-sr-id]').forEach(el => {
+        el.style.visibility = 'visible';
+        el.style.opacity = '1';
+      });
+
+      // 7. Anime.js - Complete all animations
+      const anime = safeGet(window, 'anime');
+      if (anime?.running) {
+        anime.running.forEach(anim => {
+          try {
+            anim.seek?.(anim.duration);
+          } catch (e) {
+            /* ignore */
+          }
+        });
       }
 
-      // 5. Intersection Observer based lazy loading - trigger all observers
-      // This is tricky since we can't access observers directly,
-      // but we can trigger the elements they're watching
-
-      // 6. Generic fixes for common hidden patterns
-      // Elements with opacity: 0 that are meant to fade in
-      document
-        .querySelectorAll('[style*="opacity: 0"], [style*="opacity:0"]')
-        .forEach(el => {
-          // Only reveal if it seems intentionally hidden for animation
-          const computedStyle = window.getComputedStyle(el);
-          if (
-            computedStyle.opacity === '0' &&
-            !el.hasAttribute('aria-hidden')
-          ) {
-            el.style.opacity = '1';
-          }
-        });
-
-      // Elements with visibility: hidden that may animate in
-      document
-        .querySelectorAll(
-          '[style*="visibility: hidden"], [style*="visibility:hidden"]',
-        )
-        .forEach(el => {
-          el.style.visibility = 'visible';
-        });
-
-      // Elements with transform: translateY that slide in
-      document.querySelectorAll('[style*="translateY"]').forEach(el => {
-        const style = el.getAttribute('style') || '';
-        // Only fix if it looks like a scroll animation starting position
-        if (
-          style.includes('translateY(') &&
-          (style.includes('opacity') || el.classList.length > 0)
-        ) {
-          el.style.transform = 'none';
-        }
-      });
-
-      // 7. Lazy-loaded images - force load
-      document
-        .querySelectorAll('img[data-src], img[data-lazy], img[loading="lazy"]')
-        .forEach(img => {
-          const src =
-            img.getAttribute('data-src') || img.getAttribute('data-lazy');
-          if (src && !img.src) {
-            img.src = src;
-          }
-          // Remove lazy loading to ensure images load
-          img.removeAttribute('loading');
-        });
-
-      // 8. Lazy-loaded iframes
-      document.querySelectorAll('iframe[data-src]').forEach(iframe => {
-        const src = iframe.getAttribute('data-src');
-        if (src && !iframe.src) {
-          iframe.src = src;
-        }
-      });
-
-      // 9. Picture elements with lazy loading
-      document
-        .querySelectorAll('picture source[data-srcset]')
-        .forEach(source => {
-          const srcset = source.getAttribute('data-srcset');
-          if (srcset) {
-            source.srcset = srcset;
-          }
-        });
-
-      // 10. Background images in data attributes
-      document.querySelectorAll('[data-bg], [data-background]').forEach(el => {
-        const bg =
-          el.getAttribute('data-bg') || el.getAttribute('data-background');
-        if (bg && !el.style.backgroundImage) {
-          el.style.backgroundImage = `url(${bg})`;
-        }
-      });
-
-      // 11. Lottie animations - try to advance to final state
-      const lottieElements = document.querySelectorAll(
-        'lottie-player, [data-lottie]',
-      );
-      lottieElements.forEach(el => {
+      // 8. Lottie animations - Go to last frame
+      document.querySelectorAll('lottie-player, [data-lottie]').forEach(el => {
         try {
-          if (el.goToAndStop) {
-            el.goToAndStop(el.totalFrames - 1, true);
-          }
+          el.goToAndStop?.(el.totalFrames - 1, true);
+          el.pause?.();
         } catch (e) {
           /* ignore */
         }
       });
+    });
+    /* eslint-enable no-undef */
+  }
 
-      // 12. Force all CSS animations to complete
+  /**
+   * Force reveal any remaining hidden elements
+   * This is the final cleanup pass
+   */
+  async _forceRevealHiddenElements() {
+    /* eslint-disable no-undef */
+    await this.page.evaluate(() => {
+      // 1. Force load all lazy images
+      document.querySelectorAll('img').forEach(img => {
+        // Load from data attributes
+        const lazySrc =
+          img.dataset.src || img.dataset.lazy || img.dataset.lazySrc;
+        if (lazySrc && !img.src.includes(lazySrc)) {
+          img.src = lazySrc;
+        }
+        // Remove lazy loading attribute
+        img.removeAttribute('loading');
+        // Trigger load if not loaded
+        if (!img.complete) {
+          img.loading = 'eager';
+        }
+      });
+
+      // 2. Load lazy srcset
+      document.querySelectorAll('source[data-srcset]').forEach(source => {
+        if (source.dataset.srcset) {
+          source.srcset = source.dataset.srcset;
+        }
+      });
+
+      // 3. Load lazy background images
+      document
+        .querySelectorAll(
+          '[data-bg], [data-background], [data-background-image]',
+        )
+        .forEach(el => {
+          const bg =
+            el.dataset.bg ||
+            el.dataset.background ||
+            el.dataset.backgroundImage;
+          if (bg) {
+            el.style.backgroundImage = `url("${bg}")`;
+          }
+        });
+
+      // 4. Load lazy iframes
+      document.querySelectorAll('iframe[data-src]').forEach(iframe => {
+        if (iframe.dataset.src) {
+          iframe.src = iframe.dataset.src;
+        }
+      });
+
+      // 5. Fix elements with opacity: 0 (likely animation end states)
       document.querySelectorAll('*').forEach(el => {
-        const style = window.getComputedStyle(el);
-        if (style.animationName && style.animationName !== 'none') {
-          // Set animation to end state
-          el.style.animationPlayState = 'paused';
-          el.style.animationDelay = '0s';
-          el.style.animationDuration = '0.001s';
+        const computed = window.getComputedStyle(el);
+
+        // Only fix visible containers that have hidden content
+        if (computed.opacity === '0' && !el.getAttribute('aria-hidden')) {
+          // Check if this is likely an animated element
+          const hasAnimClass =
+            el.className && /anim|fade|slide|reveal|show/i.test(el.className);
+          const hasAnimAttr =
+            el.hasAttribute('data-aos') ||
+            el.hasAttribute('data-animate') ||
+            el.hasAttribute('data-scroll');
+
+          if (hasAnimClass || hasAnimAttr || el.style.opacity === '0') {
+            el.style.setProperty('opacity', '1', 'important');
+          }
+        }
+
+        // Fix visibility
+        if (
+          computed.visibility === 'hidden' &&
+          !el.getAttribute('aria-hidden')
+        ) {
+          const hasAnimClass =
+            el.className && /anim|fade|slide|reveal|show/i.test(el.className);
+          if (hasAnimClass || el.style.visibility === 'hidden') {
+            el.style.setProperty('visibility', 'visible', 'important');
+          }
+        }
+
+        // Fix transforms that look like animation starting positions
+        if (computed.transform && computed.transform !== 'none') {
+          const transform = computed.transform;
+          // Check for translateY/translateX that might be animation starting positions
+          if (/translate[XY]\s*\(\s*[+-]?\d+/.test(transform)) {
+            const hasAnimClass =
+              el.className && /anim|fade|slide|reveal|show/i.test(el.className);
+            if (hasAnimClass) {
+              el.style.setProperty('transform', 'none', 'important');
+            }
+          }
+        }
+      });
+
+      // 6. Force CSS animations to end state
+      document.querySelectorAll('*').forEach(el => {
+        const computed = window.getComputedStyle(el);
+        if (computed.animationName && computed.animationName !== 'none') {
+          el.style.setProperty('animation', 'none', 'important');
+        }
+        if (
+          computed.transition &&
+          computed.transition !== 'none' &&
+          computed.transition !== 'all 0s ease 0s'
+        ) {
+          el.style.setProperty('transition', 'none', 'important');
         }
       });
     });
