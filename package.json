@@ -1,6 +1,6 @@
 {
   "name": "smippo",
-  "version": "0.0.2.2",
+  "version": "0.0.3",
   "description": "S.M.I.P.P.O. — Structured Mirroring of Internet Pages and Public Objects. Modern website copier that captures sites exactly as they appear in your browser.",
   "main": "src/index.js",
   "bin": {
