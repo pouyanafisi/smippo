@@ -4,6 +4,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 import {exec} from 'child_process';
+import * as p from '@clack/prompts';
+import {readManifest} from './manifest.js';
 
 // MIME type mapping
 const MIME_TYPES = {
@@ -335,6 +337,7 @@ export async function createServer(options = {}) {
     port: requestedPort = 8080,
     host = '127.0.0.1',
     open = false,
+    openPath = null, // Specific path to open (e.g., domain directory)
     cors = true,
     verbose = false,
     quiet = false,
@@ -470,7 +473,10 @@ export async function createServer(options = {}) {
   // Start listening
   return new Promise(resolve => {
     server.listen(port, host, () => {
-      const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+      const baseUrl = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+
+      // Build the URL with optional path
+      const url = openPath ? `${baseUrl}/${openPath}/` : baseUrl;
 
       if (!quiet) {
         console.log('');
@@ -571,15 +577,107 @@ function truncatePath(p, maxLen) {
 }
 
 /**
+ * Get captured sites from a smippo output directory
+ */
+async function getCapturedSites(directory) {
+  const sites = [];
+  const smippoDir = path.join(directory, '.smippo');
+
+  if (!(await fs.pathExists(smippoDir))) {
+    return sites;
+  }
+
+  // Read manifest for site info
+  const manifest = await readManifest(directory);
+
+  // Find domain directories
+  const entries = await fs.readdir(directory);
+  for (const entry of entries) {
+    if (entry.startsWith('.')) continue;
+    const entryPath = path.join(directory, entry);
+    const stat = await fs.stat(entryPath);
+    if (stat.isDirectory()) {
+      // Check if this directory has an index.html
+      const indexPath = path.join(entryPath, 'index.html');
+      const hasIndex = await fs.pathExists(indexPath);
+
+      sites.push({
+        domain: entry,
+        path: entry,
+        hasIndex,
+        rootUrl: manifest?.rootUrl || null,
+        title: manifest?.pages?.[0]?.title || entry,
+        pagesCount: manifest?.stats?.pagesCapt || 0,
+        assetsCount: manifest?.stats?.assetsCapt || 0,
+        lastUpdated: manifest?.updated || null,
+      });
+    }
+  }
+
+  return sites;
+}
+
+/**
  * Serve command for CLI
  */
 export async function serve(options) {
   try {
+    const directory = options.output || options.directory || './site';
+    const resolvedDir = path.resolve(directory);
+
+    // Check if this is a smippo capture directory
+    const sites = await getCapturedSites(resolvedDir);
+    let sitePath = null;
+
+    if (sites.length > 0 && process.stdin.isTTY && !options.quiet) {
+      // Show interactive site selection
+      console.log('');
+      p.intro(chalk.cyan('Smippo Server'));
+
+      if (sites.length === 1) {
+        // Single site - auto-select but show info
+        const site = sites[0];
+        console.log(
+          chalk.dim('  Found captured site: ') + chalk.bold(site.domain),
+        );
+        if (site.pagesCount > 0) {
+          console.log(
+            chalk.dim(`  ${site.pagesCount} pages, ${site.assetsCount} assets`),
+          );
+        }
+        sitePath = site.path;
+      } else {
+        // Multiple sites - let user choose
+        const siteOptions = sites.map(site => ({
+          value: site.path,
+          label: site.domain,
+          hint: site.pagesCount > 0 ? `${site.pagesCount} pages` : undefined,
+        }));
+
+        const selected = await p.select({
+          message: 'Which site would you like to serve?',
+          options: siteOptions,
+        });
+
+        if (p.isCancel(selected)) {
+          p.cancel('Cancelled');
+          process.exit(0);
+        }
+
+        sitePath = selected;
+      }
+      console.log('');
+    } else if (sites.length === 1) {
+      // Non-interactive mode with single site
+      sitePath = sites[0].path;
+    }
+
     const serverInfo = await createServer({
-      directory: options.output || options.directory || './site',
+      directory: resolvedDir,
       port: options.port || 8080,
       host: options.host || '127.0.0.1',
       open: options.open,
+      openPath: sitePath, // Pass the site path to open
       cors: options.cors !== false,
       verbose: options.verbose,
       quiet: options.quiet,
