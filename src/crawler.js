@@ -270,6 +270,12 @@ export class Crawler extends EventEmitter {
         mimeExclude: this.options.mimeExclude,
         maxSize: this.options.maxSize,
         minSize: this.options.minSize,
+        scroll: this.options.scroll,
+        scrollWait: this.options.scrollWait,
+        scrollStep: this.options.scrollStep,
+        scrollDelay: this.options.scrollDelay,
+        scrollBehavior: this.options.scrollBehavior,
+        revealAll: this.options.revealAll,
       });
 
       const result = await capture.capture(url);

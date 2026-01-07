@@ -89,8 +89,47 @@ export function run() {
       'Wait strategy: networkidle|load|domcontentloaded',
       'networkidle',
     )
-    .option('--wait-time <ms>', 'Additional wait time after network idle', '0')
+    .option(
+      '--wait-time <ms>',
+      'Additional wait time after network idle',
+      '500',
+    )
     .option('--timeout <ms>', 'Page load timeout', '30000')
+
+    // Scroll and reveal options (for capturing dynamic content)
+    .option(
+      '--scroll',
+      'Pre-scroll page to trigger lazy content (default: true)',
+    )
+    .option('--no-scroll', 'Disable pre-scroll behavior')
+    .option(
+      '--scroll-wait <ms>',
+      'Wait time after scrolling for animations',
+      '1000',
+    )
+    .option(
+      '--scroll-step <px>',
+      'Pixels per scroll increment (default: 200)',
+      '200',
+    )
+    .option(
+      '--scroll-delay <ms>',
+      'Delay between scroll steps (default: 50)',
+      '50',
+    )
+    .option(
+      '--scroll-behavior <type>',
+      'Scroll behavior: smooth|instant (default: smooth)',
+      'smooth',
+    )
+    .option(
+      '--reveal-all',
+      'Force reveal scroll-triggered content like GSAP, AOS (default: true)',
+    )
+    .option(
+      '--no-reveal-all',
+      'Disable force-reveal of scroll-triggered content',
+    )
     .option('--user-agent <string>', 'Custom user agent')
     .option('--viewport <WxH>', 'Viewport size', '1920x1080')
     .option('--device <name>', 'Emulate device (e.g., "iPhone 13")')
@@ -312,6 +351,12 @@ async function capture(url, options) {
     wait: options.wait,
     waitTime: parseInt(options.waitTime, 10),
     timeout: parseInt(options.timeout, 10),
+    scroll: options.scroll,
+    scrollWait: parseInt(options.scrollWait, 10),
+    scrollStep: parseInt(options.scrollStep, 10),
+    scrollDelay: parseInt(options.scrollDelay, 10),
+    scrollBehavior: options.scrollBehavior,
+    revealAll: options.revealAll,
     userAgent: options.userAgent,
     viewport: parseViewport(options.viewport),
     device: options.device,
