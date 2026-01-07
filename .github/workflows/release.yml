@@ -28,7 +28,8 @@ jobs:
       - run: npm test
       - name: Publish to npm
         run: npm publish
-        # Uses OIDC trusted publishing via setup-node@v4
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
