@@ -20,6 +20,20 @@ export function rewriteLinks(html, pageUrl, urlMap, _options = {}) {
     stripAnalyticsAndTracking($);
   }
 
+  // Add <base> tag for subpages to ensure relative paths resolve correctly
+  // This fixes the issue where /domain/subpage/ serves subpage.html but
+  // relative paths would incorrectly resolve to /domain/subpage/asset instead of /domain/asset
+  if (pagePath && !$('base').length) {
+    // Get the directory containing the HTML file (e.g., "gsap.com/core.html" -> "gsap.com/")
+    const pathParts = pagePath.split('/');
+    if (pathParts.length > 1) {
+      // Remove the filename to get the directory
+      pathParts.pop();
+      const baseDir = '/' + pathParts.join('/') + '/';
+      $('head').prepend(`<base href="${baseDir}">`);
+    }
+  }
+
   // Strip all scripts if --no-js flag is set
   if (_options.noJs) {
     // Remove script tags
