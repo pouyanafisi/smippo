@@ -420,9 +420,16 @@ async function capture(url, options) {
     }
   });
 
-  crawler.on('asset:save', ({url, size}) => {
+  crawler.on('asset:save', ({url, size, fetched}) => {
     if (options.verbose) {
-      spinner.text = `Asset: ${truncateUrl(url, 60)} (${formatSize(size)})`;
+      const prefix = fetched ? 'Fetched' : 'Asset';
+      spinner.text = `${prefix}: ${truncateUrl(url, 60)} (${formatSize(size)})`;
+    }
+  });
+
+  crawler.on('fetch:missing', ({count}) => {
+    if (options.verbose) {
+      spinner.text = `Fetching ${count} missing resources...`;
     }
   });
 

@@ -10,6 +10,11 @@ import {rewriteLinks, rewriteCssUrls} from './link-rewriter.js';
 import {normalizeUrl, isLikelyPage} from './utils/url.js';
 import {Logger} from './utils/logger.js';
 import {
+  findMissingResources,
+  fetchMissingResources,
+} from './utils/fetch-missing.js';
+import {shouldExcludeUrl} from './filters/exclude-patterns.js';
+import {
   createManifest,
   writeManifest,
   readManifest,
@@ -297,6 +302,45 @@ export class Crawler extends EventEmitter {
           localPath: resource.localPath,
           size: resource.size,
         });
+      }
+
+      // Fetch any resources referenced in HTML but not captured
+      const missingUrls = findMissingResources(
+        result.html,
+        url,
+        result.resources,
+      ).filter(u => !shouldExcludeUrl(u)); // Don't fetch analytics
+
+      if (missingUrls.length > 0) {
+        this.emit('fetch:missing', {count: missingUrls.length});
+
+        const missingResources = await fetchMissingResources(missingUrls, {
+          concurrency: 5,
+          timeout: this.options.timeout,
+          onProgress: (resourceUrl, resource) => {
+            this.emit('asset:fetch', {url: resourceUrl, size: resource.size});
+          },
+        });
+
+        // Save fetched resources
+        const additionalSaved =
+          await this.saver.saveResources(missingResources);
+
+        for (const resource of additionalSaved) {
+          addAssetToManifest(this.manifest, {
+            url: resource.url,
+            localPath: this.saver.getRelativePath(resource.localPath),
+            mimeType: missingResources.get(resource.url)?.contentType,
+            size: resource.size,
+          });
+
+          this.emit('asset:save', {
+            url: resource.url,
+            localPath: resource.localPath,
+            size: resource.size,
+            fetched: true,
+          });
+        }
       }
 
       // Build URL map for link rewriting

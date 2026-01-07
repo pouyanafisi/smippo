@@ -234,6 +234,12 @@ export const STRIP_SCRIPT_PATTERNS = [
  * These patterns match content inside <script> tags that should be removed
  */
 export const STRIP_INLINE_SCRIPT_PATTERNS = [
+  // Cloudflare beacon/RUM
+  /cdn-cgi/i,
+  /cloudflare/i,
+  /__cf_/i,
+  /beacon\.min\.js/i,
+
   // Google Analytics initialization
   /gtag\s*\(\s*['"]config['"]/i,
   /ga\s*\(\s*['"]create['"]/i,
@@ -337,8 +343,9 @@ export function getExcludeReason(url) {
   if (/beacon|collect\?|pixel\?|track\?/i.test(url)) return 'tracking-beacon';
   if (/\/api\/|graphql|webhook/i.test(url)) return 'api-endpoint';
   if (/ad\.|adsystem|advertising/i.test(url)) return 'advertising';
-  if (/cookiebot|cookielaw|onetrust|quantcast/i.test(url))
+  if (/cookiebot|cookielaw|onetrust|quantcast/i.test(url)) {
     return 'cookie-consent';
+  }
 
   return 'excluded-pattern';
 }
