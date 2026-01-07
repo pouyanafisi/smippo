@@ -367,8 +367,13 @@ export async function runInteractiveCapture() {
  * Check if we should run in interactive mode
  */
 export function shouldRunInteractive(args) {
-  // Check for explicit flags
+  // Check for explicit flags that should skip interactive mode
   if (args.includes('--no-interaction') || args.includes('-y')) {
+    return false;
+  }
+
+  // Check for version flag
+  if (args.includes('--version') || args.includes('-V')) {
     return false;
   }
 
