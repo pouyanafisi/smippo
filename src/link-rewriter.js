@@ -171,6 +171,30 @@ export function rewriteLinks(html, pageUrl, urlMap, _options = {}) {
     }
   });
 
+  // Rewrite SVG <image>, <use>, <feImage> xlink:href and href attributes
+  $('image[xlink\\:href], use[xlink\\:href], feImage[xlink\\:href]').each(
+    (_, el) => {
+      const href = $(el).attr('xlink:href');
+      if (shouldSkipUrl(href)) return;
+
+      const localPath = getLocalPath(href);
+      if (localPath) {
+        $(el).attr('xlink:href', localPath);
+      }
+    },
+  );
+
+  // SVG 2 uses href without namespace
+  $('image[href], use[href], feImage[href]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (shouldSkipUrl(href)) return;
+
+    const localPath = getLocalPath(href);
+    if (localPath) {
+      $(el).attr('href', localPath);
+    }
+  });
+
   // Rewrite style attributes
   $('[style]').each((_, el) => {
     const style = $(el).attr('style');
