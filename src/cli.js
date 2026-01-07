@@ -10,6 +10,12 @@ import {
   runInteractiveCapture,
   shouldRunInteractive,
 } from './interactive.js';
+import {
+  getSiteDir,
+  getDomainFromUrl,
+  addSiteToGlobalManifest,
+  ensureSmippoHome,
+} from './utils/home.js';
 
 const program = new Command();
 
@@ -52,7 +58,10 @@ export function run() {
   // Main capture command
   program
     .argument('[url]', 'URL to capture')
-    .option('-o, --output <dir>', 'Output directory', './site')
+    .option(
+      '-o, --output <dir>',
+      'Output directory (default: ~/.smippo/sites/[domain])',
+    )
     .option('-d, --depth <n>', 'Recursion depth (0 = single page)', '0')
     .option('--no-crawl', 'Disable link following (same as -d 0)')
     .option('--dry-run', 'Show what would be captured without downloading')
@@ -179,7 +188,7 @@ export function run() {
   // Serve command
   program
     .command('serve [directory]')
-    .description('Serve a captured site locally')
+    .description('Serve a captured site locally (default: ~/.smippo/sites/)')
     .option(
       '-p, --port <port>',
       'Port to serve on (auto-finds available)',
@@ -192,8 +201,13 @@ export function run() {
     .option('-q, --quiet', 'Minimal output')
     .action(async (directory, options) => {
       const {serve} = await import('./server.js');
+      const {getSitesDir} = await import('./utils/home.js');
+
+      // If no directory specified, use global smippo sites directory
+      const serveDir = directory || getSitesDir();
+
       await serve({
-        directory: directory || './site',
+        directory: serveDir,
         port: options.port,
         host: options.host,
         open: options.open,
@@ -269,6 +283,14 @@ export function run() {
 }
 
 async function capture(url, options) {
+  // Compute output directory based on URL domain if not specified
+  let outputDir = options.output;
+  if (!outputDir) {
+    const domain = getDomainFromUrl(url);
+    outputDir = getSiteDir(domain);
+    await ensureSmippoHome();
+  }
+
   const spinner = ora({
     text: 'Initializing browser...',
     isSilent: options.quiet,
@@ -276,7 +298,7 @@ async function capture(url, options) {
 
   const crawler = new Crawler({
     url,
-    output: options.output,
+    output: outputDir,
     depth: parseInt(options.depth, 10),
     scope: options.scope,
     stayInDir: options.stayInDir,
@@ -356,7 +378,22 @@ async function capture(url, options) {
     console.log(chalk.yellow(`    Errors:          ${result.stats.errors}`));
   }
   console.log('');
-  console.log(`  Output: ${chalk.underline(options.output)}`);
+  console.log(`  Output: ${chalk.underline(outputDir)}`);
+
+  // Update global manifest with this capture (tracks all sites regardless of location)
+  try {
+    const domain = getDomainFromUrl(url);
+    await addSiteToGlobalManifest({
+      domain,
+      rootUrl: url,
+      outputDir: outputDir,
+      title: result.pages?.[0]?.title || domain,
+      pagesCount: result.stats.pagesCapt,
+      assetsCount: result.stats.assetsCapt,
+    });
+  } catch {
+    // Silently ignore manifest errors
+  }
 }
 
 async function continueCapture(options) {

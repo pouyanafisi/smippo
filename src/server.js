@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import {exec} from 'child_process';
 import * as p from '@clack/prompts';
 import {readManifest} from './manifest.js';
+import {getAllCapturedSites, getSitesDir} from './utils/home.js';
 
 // MIME type mapping
 const MIME_TYPES = {
@@ -256,7 +257,7 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
           : ''
       }
 		</div>
-		
+
 		${
       !isRoot
         ? `
@@ -273,7 +274,7 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
 		</div>`
         : ''
     }
-		
+
 		<div class="listing">
 			<div class="listing-header">
 				${isRoot ? 'Captured Sites' : `Contents of ${urlPath}`}
@@ -317,7 +318,7 @@ async function generateDirectoryListing(dirPath, urlPath, rootDir) {
           : ''
       }
 		</div>
-		
+
 		<div class="footer">
 			Powered by Smippo • Modern Website Copier
 		</div>
@@ -577,41 +578,103 @@ function truncatePath(p, maxLen) {
 }
 
 /**
- * Get captured sites from a smippo output directory
+ * Get captured sites - either from global manifest or a specific directory
+ * @param {string|null} directory - Specific directory to serve, or null for global
  */
 async function getCapturedSites(directory) {
   const sites = [];
-  const smippoDir = path.join(directory, '.smippo');
 
-  if (!(await fs.pathExists(smippoDir))) {
+  // If no directory specified or it's the global sites dir, use global manifest
+  const globalSitesDir = getSitesDir();
+  const isGlobalMode =
+    !directory || path.resolve(directory) === path.resolve(globalSitesDir);
+
+  if (isGlobalMode) {
+    // Use global manifest to get all captured sites
+    const globalSites = await getAllCapturedSites();
+    for (const site of globalSites) {
+      // Find the domain subdirectory within the site path
+      const domainDir = path.join(site.path, site.domain);
+      const indexInDomain = path.join(domainDir, 'index.html');
+      const indexInRoot = path.join(site.path, 'index.html');
+
+      let hasIndex = false;
+
+      if (await fs.pathExists(indexInDomain)) {
+        hasIndex = true;
+      } else if (await fs.pathExists(indexInRoot)) {
+        hasIndex = true;
+      }
+
+      sites.push({
+        domain: site.domain,
+        fullPath: site.path, // Absolute path to serve from
+        domainPath: site.domain, // Domain subdirectory
+        hasIndex,
+        rootUrl: site.rootUrl,
+        title: site.title || site.domain,
+        pagesCount: site.pagesCount || 0,
+        assetsCount: site.assetsCount || 0,
+        lastUpdated: site.updated || null,
+      });
+    }
     return sites;
   }
 
-  // Read manifest for site info
+  // Specific directory mode: check for .smippo directory
+  const smippoDir = path.join(directory, '.smippo');
+  if (!(await fs.pathExists(smippoDir))) {
+    // Check if directory itself is a site directory (has index.html)
+    const indexPath = path.join(directory, 'index.html');
+    if (await fs.pathExists(indexPath)) {
+      const dirName = path.basename(directory);
+      sites.push({
+        domain: dirName,
+        fullPath: directory,
+        domainPath: '',
+        hasIndex: true,
+        rootUrl: null,
+        title: dirName,
+        pagesCount: 0,
+        assetsCount: 0,
+        lastUpdated: null,
+      });
+    }
+    return sites;
+  }
+
+  // Read local manifest for site info
   const manifest = await readManifest(directory);
 
-  // Find domain directories
-  const entries = await fs.readdir(directory);
-  for (const entry of entries) {
-    if (entry.startsWith('.')) continue;
-    const entryPath = path.join(directory, entry);
-    const stat = await fs.stat(entryPath);
-    if (stat.isDirectory()) {
-      // Check if this directory has an index.html
-      const indexPath = path.join(entryPath, 'index.html');
+  if (!manifest?.rootUrl) {
+    return sites;
+  }
+
+  // Extract domain from rootUrl
+  try {
+    const url = new URL(manifest.rootUrl);
+    const mainDomain = url.hostname;
+
+    // Check if the main domain directory exists
+    const domainPath = path.join(directory, mainDomain);
+    if (await fs.pathExists(domainPath)) {
+      const indexPath = path.join(domainPath, 'index.html');
       const hasIndex = await fs.pathExists(indexPath);
 
       sites.push({
-        domain: entry,
-        path: entry,
+        domain: mainDomain,
+        fullPath: directory,
+        domainPath: mainDomain,
         hasIndex,
-        rootUrl: manifest?.rootUrl || null,
-        title: manifest?.pages?.[0]?.title || entry,
-        pagesCount: manifest?.stats?.pagesCapt || 0,
-        assetsCount: manifest?.stats?.assetsCapt || 0,
-        lastUpdated: manifest?.updated || null,
+        rootUrl: manifest.rootUrl,
+        title: manifest.pages?.[0]?.title || mainDomain,
+        pagesCount: manifest.stats?.pagesCapt || 0,
+        assetsCount: manifest.stats?.assetsCapt || 0,
+        lastUpdated: manifest.updated || null,
       });
     }
+  } catch {
+    // Invalid URL in manifest, fall back to directory scan
   }
 
   return sites;
@@ -622,12 +685,15 @@ async function getCapturedSites(directory) {
  */
 export async function serve(options) {
   try {
-    const directory = options.output || options.directory || './site';
-    const resolvedDir = path.resolve(directory);
+    const directory = options.output || options.directory;
+    const globalSitesDir = getSitesDir();
 
-    // Check if this is a smippo capture directory
-    const sites = await getCapturedSites(resolvedDir);
-    let sitePath = null;
+    // Get captured sites (from global manifest if no directory specified)
+    const sites = await getCapturedSites(directory);
+
+    let serveDir = directory ? path.resolve(directory) : null;
+    let openPath = null;
+    let selectedSite = null;
 
     if (sites.length > 0 && process.stdin.isTTY && !options.quiet) {
       // Show interactive site selection
@@ -636,22 +702,30 @@ export async function serve(options) {
 
       if (sites.length === 1) {
         // Single site - auto-select but show info
-        const site = sites[0];
+        selectedSite = sites[0];
         console.log(
-          chalk.dim('  Found captured site: ') + chalk.bold(site.domain),
+          chalk.dim('  Found captured site: ') +
+            chalk.bold(selectedSite.domain),
         );
-        if (site.pagesCount > 0) {
+        if (selectedSite.pagesCount > 0) {
           console.log(
-            chalk.dim(`  ${site.pagesCount} pages, ${site.assetsCount} assets`),
+            chalk.dim(
+              `  ${selectedSite.pagesCount} pages, ${selectedSite.assetsCount} assets`,
+            ),
           );
         }
-        sitePath = site.path;
+        if (selectedSite.fullPath) {
+          console.log(chalk.dim(`  Location: ${selectedSite.fullPath}`));
+        }
       } else {
         // Multiple sites - let user choose
         const siteOptions = sites.map(site => ({
-          value: site.path,
+          value: site,
           label: site.domain,
-          hint: site.pagesCount > 0 ? `${site.pagesCount} pages` : undefined,
+          hint:
+            site.pagesCount > 0
+              ? `${site.pagesCount} pages - ${site.fullPath}`
+              : site.fullPath,
         }));
 
         const selected = await p.select({
@@ -664,20 +738,34 @@ export async function serve(options) {
           process.exit(0);
         }
 
-        sitePath = selected;
+        selectedSite = selected;
       }
       console.log('');
     } else if (sites.length === 1) {
       // Non-interactive mode with single site
-      sitePath = sites[0].path;
+      selectedSite = sites[0];
+    } else if (sites.length === 0 && !directory) {
+      console.log(chalk.yellow('No captured sites found.'));
+      console.log(
+        chalk.dim('  Capture a site first: ') + chalk.cyan('smippo <url>'),
+      );
+      process.exit(0);
+    }
+
+    // Determine serve directory and open path
+    if (selectedSite) {
+      serveDir = selectedSite.fullPath;
+      openPath = selectedSite.domainPath || null;
+    } else if (!serveDir) {
+      serveDir = globalSitesDir;
     }
 
     const serverInfo = await createServer({
-      directory: resolvedDir,
+      directory: serveDir,
       port: options.port || 8080,
       host: options.host || '127.0.0.1',
       open: options.open,
-      openPath: sitePath, // Pass the site path to open
+      openPath: openPath,
       cors: options.cors !== false,
       verbose: options.verbose,
       quiet: options.quiet,
