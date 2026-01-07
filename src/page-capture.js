@@ -1,5 +1,9 @@
 // @flow
 import {extractLinks} from './link-extractor.js';
+import {
+  shouldExcludeUrl,
+  getExcludeReason,
+} from './filters/exclude-patterns.js';
 
 /**
  * Capture a single page with all its rendered content
@@ -11,6 +15,7 @@ export class PageCapture {
     this.page = page;
     this.options = options;
     this.resources = new Map();
+    this.excludedResources = new Map(); // Track what was excluded and why
   }
 
   /**
@@ -112,6 +117,7 @@ export class PageCapture {
       title,
       links,
       resources: this.resources,
+      excludedResources: this.excludedResources,
       screenshot,
       pdf,
       duration: Date.now() - startTime,
@@ -136,6 +142,13 @@ export class PageCapture {
 
       // Skip data URLs
       if (url.startsWith('data:')) return;
+
+      // Skip analytics, tracking, source maps, and other excluded patterns
+      if (shouldExcludeUrl(url)) {
+        const reason = getExcludeReason(url);
+        this.excludedResources.set(url, reason);
+        return;
+      }
 
       // Apply MIME type filters
       if (this.options.mimeExclude?.length) {

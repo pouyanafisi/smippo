@@ -2,6 +2,11 @@
 import {load} from 'cheerio';
 import {getRelativePath} from './utils/path.js';
 import {urlToPath, resolveUrl} from './utils/url.js';
+import {
+  shouldStripScript,
+  shouldStripInlineScript,
+  isTrackingPixel,
+} from './filters/exclude-patterns.js';
 
 /**
  * Rewrite links in HTML to point to local files
@@ -9,6 +14,11 @@ import {urlToPath, resolveUrl} from './utils/url.js';
 export function rewriteLinks(html, pageUrl, urlMap, _options = {}) {
   const $ = load(html, {decodeEntities: false});
   const pagePath = urlToPath(pageUrl, _options.structure);
+
+  // Always strip analytics scripts (unless explicitly disabled)
+  if (_options.keepAnalytics !== true) {
+    stripAnalyticsAndTracking($);
+  }
 
   // Strip all scripts if --no-js flag is set
   if (_options.noJs) {
@@ -313,5 +323,95 @@ function shouldSkipUrl(url) {
 
   return skipPrefixes.some(prefix =>
     url.trim().toLowerCase().startsWith(prefix),
+  );
+}
+
+/**
+ * Strip analytics scripts, tracking pixels, and other unnecessary third-party code
+ */
+function stripAnalyticsAndTracking($) {
+  // Remove external analytics scripts
+  $('script[src]').each((_, el) => {
+    const src = $(el).attr('src');
+    if (shouldStripScript(src)) {
+      $(el).remove();
+    }
+  });
+
+  // Remove inline analytics scripts
+  $('script:not([src])').each((_, el) => {
+    const content = $(el).html() || '';
+    if (shouldStripInlineScript(content)) {
+      $(el).remove();
+    }
+  });
+
+  // Remove tracking pixels (1x1 images)
+  $('img').each((_, el) => {
+    const src = $(el).attr('src');
+    const width = $(el).attr('width');
+    const height = $(el).attr('height');
+
+    // Remove if it's a known tracking pixel URL
+    if (isTrackingPixel(src)) {
+      $(el).remove();
+      return;
+    }
+
+    // Remove 1x1 pixel images (likely tracking)
+    if (
+      (width === '1' || width === '0') &&
+      (height === '1' || height === '0')
+    ) {
+      $(el).remove();
+    }
+  });
+
+  // Remove noscript tracking pixels
+  $('noscript').each((_, el) => {
+    const content = $(el).html() || '';
+    // Check if it contains tracking pixel images
+    if (
+      /facebook\.com\/tr|google-analytics|bat\.bing|linkedin\.com\/px/i.test(
+        content,
+      )
+    ) {
+      $(el).remove();
+    }
+  });
+
+  // Remove beacon/preconnect links to analytics domains
+  $('link[rel="preconnect"], link[rel="dns-prefetch"]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (
+      href &&
+      /google-analytics|googletagmanager|facebook|hotjar|mixpanel|segment|amplitude|intercom|drift|hubspot/i.test(
+        href,
+      )
+    ) {
+      $(el).remove();
+    }
+  });
+
+  // Remove iframes that are tracking/analytics
+  $('iframe').each((_, el) => {
+    const src = $(el).attr('src');
+    if (
+      src &&
+      /facebook\.com\/plugins|platform\.twitter|googletagmanager/i.test(src)
+    ) {
+      $(el).remove();
+    }
+  });
+
+  // Remove data attributes used for analytics
+  $('[data-gtm-click], [data-analytics], [data-track], [data-ga]').each(
+    (_, el) => {
+      $(el)
+        .removeAttr('data-gtm-click')
+        .removeAttr('data-analytics')
+        .removeAttr('data-track')
+        .removeAttr('data-ga');
+    },
   );
 }

@@ -157,6 +157,10 @@ export function run() {
     .option('--pdf', 'Save PDF of each page')
     .option('--static', 'Remove scripts for static offline viewing')
     .option('--inline-css', 'Inline CSS into HTML for single-file output')
+    .option(
+      '--keep-analytics',
+      'Keep analytics/tracking scripts (stripped by default)',
+    )
 
     // Performance options
     .option('-w, --workers <n>', 'Parallel workers/pages (default: 8)', '8')
@@ -388,6 +392,7 @@ async function capture(url, options) {
     pdf: options.pdf,
     noJs: options.static,
     inlineCss: options.inlineCss,
+    keepAnalytics: options.keepAnalytics,
     concurrency: parseInt(options.workers || options.concurrency, 10),
     maxPages: options.maxPages ? parseInt(options.maxPages, 10) : undefined,
     maxTime: options.maxTime ? parseInt(options.maxTime, 10) * 1000 : undefined,

@@ -310,6 +310,7 @@ export class Crawler extends EventEmitter {
         structure: this.options.structure,
         noJs: this.options.noJs,
         inlineCss: this.options.inlineCss,
+        keepAnalytics: this.options.keepAnalytics,
       });
 
       // Save HTML
