@@ -28,7 +28,7 @@ jobs:
       - run: npm test
       - name: Publish to npm
         run: npm publish
-        # Uses OIDC trusted publishing - no token needed
+        # Uses OIDC trusted publishing via setup-node@v4
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
