@@ -352,8 +352,18 @@ export async function createServer(options = {}) {
     throw new Error(`Directory not found: ${rootDir}`);
   }
 
-  // Find available port
-  const port = await findAvailablePort(parseInt(requestedPort, 10));
+  // Find available port (auto-increment if requested port is taken)
+  const requestedPortNum = parseInt(requestedPort, 10);
+  const port = await findAvailablePort(requestedPortNum);
+
+  // Notify if using a different port than requested
+  if (port !== requestedPortNum && !quiet) {
+    console.log(
+      chalk.yellow(
+        `  Port ${requestedPortNum} is in use, using ${port} instead`,
+      ),
+    );
+  }
 
   // Create HTTP server
   const server = http.createServer(async (req, res) => {
@@ -432,8 +442,9 @@ export async function createServer(options = {}) {
       logRequest(req, 200, Date.now() - startTime, verbose, quiet);
     } catch (error) {
       if (error.code === 'ENOENT') {
-        // Try adding .html extension
-        const htmlPath = filePath + '.html';
+        // Try adding .html extension (strip trailing slashes first)
+        const cleanPath = filePath.replace(/\/+$/, '');
+        const htmlPath = cleanPath + '.html';
         if (await fs.pathExists(htmlPath)) {
           const content = await fs.readFile(htmlPath);
           const headers = {
@@ -593,23 +604,66 @@ async function getCapturedSites(directory) {
     // Use global manifest to get all captured sites
     const globalSites = await getAllCapturedSites();
     for (const site of globalSites) {
-      // Find the domain subdirectory within the site path
-      const domainDir = path.join(site.path, site.domain);
-      const indexInDomain = path.join(domainDir, 'index.html');
-      const indexInRoot = path.join(site.path, 'index.html');
-
       let hasIndex = false;
+      let domainPath = ''; // Default: files are directly in site.path
 
-      if (await fs.pathExists(indexInDomain)) {
-        hasIndex = true;
-      } else if (await fs.pathExists(indexInRoot)) {
-        hasIndex = true;
+      // First, try to read the site's manifest to get the actual path
+      const manifestPath = path.join(site.path, '.smippo', 'manifest.json');
+      if (await fs.pathExists(manifestPath)) {
+        try {
+          const siteManifest = await fs.readJson(manifestPath);
+          // Get the first page's local path to determine the domain directory
+          if (siteManifest.pages?.[0]?.localPath) {
+            const firstPagePath = siteManifest.pages[0].localPath;
+            // Extract the domain directory (e.g., "tttc.ca/index.html" -> "tttc.ca")
+            const parts = firstPagePath.split('/');
+            if (parts.length > 1) {
+              domainPath = parts[0];
+              const domainDir = path.join(site.path, domainPath);
+              const indexInDomain = path.join(domainDir, 'index.html');
+              if (await fs.pathExists(indexInDomain)) {
+                hasIndex = true;
+              }
+            }
+          }
+        } catch {
+          // Manifest read failed, fall through to directory scanning
+        }
+      }
+
+      // If manifest didn't give us the path, try common patterns
+      if (!hasIndex) {
+        // Check if index.html is directly in site.path
+        const indexInRoot = path.join(site.path, 'index.html');
+        if (await fs.pathExists(indexInRoot)) {
+          hasIndex = true;
+          domainPath = '';
+        } else {
+          // Check for domain subdirectory (exact match)
+          const domainDir = path.join(site.path, site.domain);
+          const indexInDomain = path.join(domainDir, 'index.html');
+          if (await fs.pathExists(indexInDomain)) {
+            hasIndex = true;
+            domainPath = site.domain;
+          } else {
+            // Check for domain without www. prefix (redirect case)
+            const domainWithoutWww = site.domain.replace(/^www\./, '');
+            if (domainWithoutWww !== site.domain) {
+              const altDomainDir = path.join(site.path, domainWithoutWww);
+              const altIndexPath = path.join(altDomainDir, 'index.html');
+              if (await fs.pathExists(altIndexPath)) {
+                hasIndex = true;
+                domainPath = domainWithoutWww;
+              }
+            }
+          }
+        }
       }
 
       sites.push({
         domain: site.domain,
         fullPath: site.path, // Absolute path to serve from
-        domainPath: site.domain, // Domain subdirectory
+        domainPath, // Domain subdirectory (empty if files are directly in fullPath)
         hasIndex,
         rootUrl: site.rootUrl,
         title: site.title || site.domain,
@@ -655,16 +709,55 @@ async function getCapturedSites(directory) {
     const url = new URL(manifest.rootUrl);
     const mainDomain = url.hostname;
 
-    // Check if the main domain directory exists
-    const domainPath = path.join(directory, mainDomain);
-    if (await fs.pathExists(domainPath)) {
-      const indexPath = path.join(domainPath, 'index.html');
-      const hasIndex = await fs.pathExists(indexPath);
+    let hasIndex = false;
+    let actualDomainPath = '';
 
+    // First, try to get the actual path from the first page's localPath
+    if (manifest.pages?.[0]?.localPath) {
+      const firstPagePath = manifest.pages[0].localPath;
+      const parts = firstPagePath.split('/');
+      if (parts.length > 1) {
+        const domainFromManifest = parts[0];
+        const domainDir = path.join(directory, domainFromManifest);
+        const indexInDomain = path.join(domainDir, 'index.html');
+        if (await fs.pathExists(indexInDomain)) {
+          hasIndex = true;
+          actualDomainPath = domainFromManifest;
+        }
+      }
+    }
+
+    // If manifest didn't give us the path, try common patterns
+    if (!hasIndex) {
+      // Check if the main domain directory exists (exact match)
+      const domainDir = path.join(directory, mainDomain);
+      if (await fs.pathExists(domainDir)) {
+        const indexInDomain = path.join(domainDir, 'index.html');
+        if (await fs.pathExists(indexInDomain)) {
+          hasIndex = true;
+          actualDomainPath = mainDomain;
+        }
+      }
+
+      // Check for domain without www. prefix (redirect case)
+      if (!hasIndex) {
+        const domainWithoutWww = mainDomain.replace(/^www\./, '');
+        if (domainWithoutWww !== mainDomain) {
+          const altDomainDir = path.join(directory, domainWithoutWww);
+          const altIndexPath = path.join(altDomainDir, 'index.html');
+          if (await fs.pathExists(altIndexPath)) {
+            hasIndex = true;
+            actualDomainPath = domainWithoutWww;
+          }
+        }
+      }
+    }
+
+    if (hasIndex || actualDomainPath) {
       sites.push({
         domain: mainDomain,
         fullPath: directory,
-        domainPath: mainDomain,
+        domainPath: actualDomainPath,
         hasIndex,
         rootUrl: manifest.rootUrl,
         title: manifest.pages?.[0]?.title || mainDomain,
