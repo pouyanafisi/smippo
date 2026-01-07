@@ -6,13 +6,16 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
   id-token: write # Required for OIDC trusted publishing
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # Required for npm provenance
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,9 +23,6 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-          # Token is automatically used from NODE_AUTH_TOKEN env var
-      - name: Configure npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
@@ -30,9 +30,7 @@ jobs:
         run: npx playwright install chromium
       - run: npm test
       - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
