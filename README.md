@@ -60,10 +60,74 @@ Smippo provides several commands for different use cases:
 - **`smippo <url>`** — Capture and mirror websites with full fidelity
 - **`smippo capture <url>`** — Take screenshots of web pages
 - **`smippo serve <directory>`** — Serve captured sites locally
-- **`smippo continue`** — Resume an interrupted capture
-- **`smippo update`** — Update an existing mirror
+- **`smippo continue [target]`** — Resume an interrupted capture
+- **`smippo update [target]`** — Update an existing mirror
 
 Run `smippo` with no arguments to start the interactive guided mode.
+
+`continue` and `update` resolve their directory the same way a capture does. With
+no arguments they resume the most recent capture; give them a URL or hostname
+(`smippo continue example.com`) or an explicit `-o <dir>` to pick another.
+
+## Sites behind a bot check
+
+Some sites sit behind Cloudflare or a similar edge check. Playwright's bundled
+Chromium carries automation markers and gets served a challenge page instead of
+the site, so Smippo tells you when that happened rather than saving the
+interstitial as if it were content:
+
+```
+✖ Capture FAILED - every page was a challenge page
+
+  Pages captured:  0
+  Challenge pages: 1  (bot checks, NOT site content)
+```
+
+Challenged pages are flagged in `.smippo/manifest.json` under `challenge`,
+excluded from the captured-page count, and the process exits non-zero when every
+page was challenged.
+
+The fix is to use a **real browser**, not to imitate one:
+
+| Flag                       | What it does                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `--cdp <endpoint>`         | Attach to a browser you already started, e.g. `http://localhost:9222`. Best option.            |
+| `--channel <name>`         | Launch your installed browser (`chrome`, `chrome-beta`, `msedge`) instead of bundled Chromium. |
+| `--user-data-dir <path>`   | Launch with a real profile, so real cookies and logins come with it.                           |
+| `--executable-path <path>` | Point at a specific browser binary.                                                            |
+
+`--cdp` is the one that matters. It joins an already-running browser rather than
+starting one, so no automation flags are set and the page context is
+indistinguishable from you browsing by hand:
+
+```bash
+# 1. Start your own Chrome with a debugging port
+google-chrome --remote-debugging-port=9222 \
+  --user-data-dir="$HOME/.chrome-devport-profile"
+
+# 2. Visit the site once in that window. If a check appears, click it yourself.
+
+# 3. Attach Smippo to it
+smippo https://example.com --cdp http://localhost:9222
+```
+
+On macOS, `scripts/real-chrome.sh` in the freshdogfood repo does step 1 for you
+on port 9222 — a dedicated profile by default, `--main` for your everyday one.
+
+A browser reached over `--cdp` belongs to you: Smippo opens and closes its own
+tabs, reuses your existing context rather than replacing it, and disconnects
+without shutting your browser down when it finishes. `--har`, `--user-agent`,
+`--device` and `--proxy` need a context Smippo creates itself, so they are
+reported as ignored in this mode.
+
+**What Smippo will never do:** patch `navigator.webdriver`, spoof a TLS/JA3
+fingerprint, or ship a stealth plugin. Defeating bot detection is out of scope
+and unwanted. Attaching to your own browser is fine; manufacturing a fake one is
+not. If a challenge appears, a person clears it.
+
+`robots.txt` is respected the same way regardless of which browser is driving.
+When `robots.txt` cannot be fetched or parsed, Smippo proceeds as allowed —
+long-standing behaviour, now logged rather than silent.
 
 ## Features
 

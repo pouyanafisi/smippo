@@ -64,15 +64,18 @@ export class Crawler extends EventEmitter {
       minSize: options.minSize,
     });
 
-    this.robots = new RobotsHandler({
-      ignoreRobots: options.ignoreRobots,
-      userAgent: options.userAgent,
-    });
-
     this.logger = new Logger({
       verbose: options.verbose,
       quiet: options.quiet,
       logFile: options.logFile || getLogPath(options.output),
+    });
+
+    // The logger is passed in so a robots.txt fail-open is visible. The
+    // fail-open default itself is unchanged.
+    this.robots = new RobotsHandler({
+      ignoreRobots: options.ignoreRobots,
+      userAgent: options.userAgent,
+      logger: this.logger,
     });
   }
 
@@ -126,14 +129,28 @@ export class Crawler extends EventEmitter {
   }
 
   /**
-   * Initialize the browser
+   * Initialize the browser.
+   *
+   * Four ways in, in precedence order:
+   *
+   *   --cdp <endpoint>       attach to a browser the user already started
+   *   --user-data-dir <dir>  launch with a real profile (persistent context)
+   *   --channel <name>       launch the installed Chrome/Edge rather than
+   *                          Playwright's bundled Chromium
+   *   (default)              bundled Chromium
+   *
+   * The point of the first three is to use a REAL browser, never to fake one.
+   * Bundled Chromium carries automation markers that edge bot detection refuses,
+   * and the answer to that is to drive the actual browser the user already has -
+   * not to patch navigator.webdriver, spoof a TLS/JA3 fingerprint, or load a
+   * stealth plugin. Defeating bot detection is explicitly out of scope. If a
+   * challenge appears, a person clears it in their own browser.
    */
   async _initBrowser() {
-    const launchOptions = {
-      headless: !this.options.debug,
-    };
-
-    this.browser = await chromium.launch(launchOptions);
+    // Ownership decides teardown. Anything smippo did not start, smippo does not
+    // close - closing a CDP-attached browser would kill the user's own window.
+    this.ownsBrowser = false;
+    this.ownsContext = false;
 
     const contextOptions = {
       viewport: this.options.viewport,
@@ -158,7 +175,21 @@ export class Crawler extends EventEmitter {
       };
     }
 
-    this.context = await this.browser.newContext(contextOptions);
+    if (this.options.cdp) {
+      await this._attachOverCdp(contextOptions);
+    } else if (this.options.userDataDir) {
+      await this._launchPersistent(contextOptions);
+    } else {
+      const launchOptions = {headless: !this.options.debug};
+      if (this.options.channel) launchOptions.channel = this.options.channel;
+      if (this.options.executablePath) {
+        launchOptions.executablePath = this.options.executablePath;
+      }
+      this.browser = await chromium.launch(launchOptions);
+      this.ownsBrowser = true;
+      this.context = await this.browser.newContext(contextOptions);
+      this.ownsContext = true;
+    }
 
     // Load cookies if provided
     if (this.options.cookies) {
@@ -173,13 +204,113 @@ export class Crawler extends EventEmitter {
   }
 
   /**
-   * Close the browser
+   * Attach to a browser the user is already running.
+   *
+   * connectOverCDP joins an existing process rather than launching one, so it
+   * sets no automation flags and the page context stays indistinguishable from
+   * the user browsing by hand. That is the whole point of this mode.
+   */
+  async _attachOverCdp(contextOptions) {
+    try {
+      this.browser = await chromium.connectOverCDP(this.options.cdp);
+    } catch (error) {
+      throw new Error(
+        `Could not attach to a browser at ${this.options.cdp}: ${error.message}\n` +
+          `  Start one first, e.g.:\n` +
+          `    google-chrome --remote-debugging-port=9222 \\\n` +
+          `      --user-data-dir="$HOME/.chrome-devport-profile"`,
+      );
+    }
+
+    // We attached; we did not start it. Do not close it.
+    this.ownsBrowser = false;
+
+    // Over CDP the browser exposes its existing default context. Reuse it - a
+    // fresh context would lose the cookies and session that make this mode work.
+    const existing = this.browser.contexts();
+    if (existing.length > 0) {
+      this.context = existing[0];
+      this.ownsContext = false;
+    } else {
+      this.context = await this.browser.newContext();
+      this.ownsContext = true;
+    }
+
+    // Context-creation options cannot be applied to a context we did not create.
+    // Say so rather than pretending they took effect.
+    const ignored = [];
+    if (this.options.har) ignored.push('--har');
+    if (this.options.userAgent) ignored.push('--user-agent');
+    if (this.options.device) ignored.push('--device');
+    if (this.options.proxy) ignored.push('--proxy');
+    if (ignored.length > 0) {
+      this.logger.warn(
+        `Ignored with --cdp (the attached browser owns its context): ${ignored.join(', ')}`,
+      );
+    }
+    // Viewport is settable per page, so it is applied in _capturePage instead.
+    this.cdpViewport = contextOptions.viewport;
+  }
+
+  /**
+   * Launch a browser against a real on-disk profile, cookies and all.
+   *
+   * launchPersistentContext returns a context directly; there is no separate
+   * Browser to manage. smippo started this process, so smippo closes it -
+   * leaving it open would hang the CLI. Point it at a dedicated profile
+   * directory: Chrome locks a profile that is already open.
+   */
+  async _launchPersistent(contextOptions) {
+    const launchOptions = {
+      headless: !this.options.debug,
+      ...contextOptions,
+    };
+    if (this.options.channel) launchOptions.channel = this.options.channel;
+    if (this.options.executablePath) {
+      launchOptions.executablePath = this.options.executablePath;
+    }
+
+    try {
+      this.context = await chromium.launchPersistentContext(
+        this.options.userDataDir,
+        launchOptions,
+      );
+    } catch (error) {
+      throw new Error(
+        `Could not launch a browser with profile ${this.options.userDataDir}: ${error.message}\n` +
+          `  A profile already open in another browser window is locked. Quit it,\n` +
+          `  or use a dedicated profile directory.`,
+      );
+    }
+
+    this.browser = this.context.browser();
+    this.ownsBrowser = true;
+    this.ownsContext = true;
+  }
+
+  /**
+   * Close the browser - or, when attached, merely let go of it.
+   *
+   * Contexts: only ever close one smippo created. Closing a context reused over
+   * CDP would shut the user's own tabs.
+   *
+   * Browsers: browser.close() means two different things in Playwright. On a
+   * browser obtained from launch()/launchPersistentContext() it terminates the
+   * process. On one obtained from connectOverCDP() it disconnects the client and
+   * leaves the browser running - verified against Chrome 150 by connecting to a
+   * browser with open tabs, calling close(), and confirming both the browser and
+   * every pre-existing tab survived.
+   *
+   * The disconnect is not optional: Playwright's open socket keeps the Node
+   * process alive, so skipping it leaves the CLI hanging forever after a
+   * successful capture.
    */
   async _closeBrowser() {
-    if (this.context) {
+    if (this.context && this.ownsContext) {
       await this.context.close();
     }
     if (this.browser) {
+      // Kills the process when we launched it; disconnects when we attached.
       await this.browser.close();
     }
   }
@@ -262,8 +393,15 @@ export class Crawler extends EventEmitter {
         await sleep(crawlDelay * 1000);
       }
 
-      // Create page
+      // Create page. Pages smippo opens are smippo's to close, even in --cdp
+      // mode where the browser and context are not.
       page = await this.context.newPage();
+
+      // With --cdp the context already existed, so its viewport could not be set
+      // at creation time. Apply it per page instead.
+      if (this.cdpViewport) {
+        await page.setViewportSize(this.cdpViewport);
+      }
 
       // Capture the page
       const capture = new PageCapture(page, {

@@ -116,6 +116,47 @@ export function showHelp() {
   );
   console.log('');
 
+  console.log(chalk.bold.white('REAL BROWSER'));
+  console.log(
+    chalk.dim(
+      '  For sites behind a bot check. Uses a real browser - never fakes one.',
+    ),
+  );
+  console.log('');
+  console.log(
+    `  ${chalk.yellow('--cdp')} ${chalk.dim('<endpoint>')}         Attach to a browser you already started`,
+  );
+  console.log(
+    chalk.dim(
+      '                            e.g. --cdp http://localhost:9222. Start it with:',
+    ),
+  );
+  console.log(
+    chalk.dim(
+      '                            google-chrome --remote-debugging-port=9222 \\',
+    ),
+  );
+  console.log(
+    chalk.dim(
+      '                              --user-data-dir="$HOME/.chrome-devport-profile"',
+    ),
+  );
+  console.log(
+    chalk.dim(
+      '                            (freshdogfood repo: bash scripts/real-chrome.sh)',
+    ),
+  );
+  console.log(
+    `  ${chalk.yellow('--channel')} ${chalk.dim('<name>')}         Launch installed chrome|chrome-beta|msedge`,
+  );
+  console.log(
+    `  ${chalk.yellow('--user-data-dir')} ${chalk.dim('<path>')}   Launch with a real profile and its cookies`,
+  );
+  console.log(
+    `  ${chalk.yellow('--executable-path')} ${chalk.dim('<path>')} Launch a specific browser binary`,
+  );
+  console.log('');
+
   console.log(chalk.bold.white('OUTPUT'));
   console.log('');
   console.log(

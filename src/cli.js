@@ -150,11 +150,41 @@ export function run() {
     .option('--viewport <WxH>', 'Viewport size', '1920x1080')
     .option('--device <name>', 'Emulate device (e.g., "iPhone 13")')
 
+    // Real-browser options.
+    // These exist because bundled Chromium is refused by edge bot detection, and
+    // the answer is to use a real browser - never to impersonate one. No
+    // fingerprint spoofing, no stealth plugins. See src/challenge.js.
+    .option(
+      '--cdp <endpoint>',
+      'Attach to a browser you already started, e.g. http://localhost:9222. ' +
+        'Start it with: google-chrome --remote-debugging-port=9222 ' +
+        '--user-data-dir="$HOME/.chrome-devport-profile" (or, in the ' +
+        'freshdogfood repo, bash scripts/real-chrome.sh). Clear any bot check ' +
+        'in that window yourself first. Sets no automation flags.',
+    )
+    .option(
+      '--channel <name>',
+      'Launch an installed browser instead of bundled Chromium: ' +
+        'chrome|chrome-beta|msedge',
+    )
+    .option(
+      '--user-data-dir <path>',
+      'Launch with a real browser profile and its cookies. Use a dedicated ' +
+        'directory - a profile open elsewhere is locked.',
+    )
+    .option(
+      '--executable-path <path>',
+      'Path to a specific browser binary to launch',
+    )
+
     // Network options
     .option('--proxy <url>', 'Proxy server URL')
     .option('--cookies <file>', 'Load cookies from JSON file')
     .option('--headers <json>', 'Custom headers as JSON')
-    .option('--capture-auth', 'Interactive authentication capture')
+    .option(
+      '--capture-auth',
+      'NOT IMPLEMENTED - use --cdp or --user-data-dir for an authenticated session',
+    )
 
     // Output options
     .option(
@@ -392,6 +422,21 @@ function toInt(value, fallback) {
 }
 
 async function capture(url, options) {
+  // --capture-auth has never been wired to anything: it was declared, forwarded
+  // to the crawler, and read by nobody. A flag that silently does nothing is the
+  // same class of defect as a silently-saved challenge page, so say so.
+  if (options.captureAuth) {
+    console.log(
+      chalk.yellow(
+        '⚠ --capture-auth is not implemented and does nothing.\n' +
+          '  For a session that is already logged in, attach to your own browser:\n' +
+          '    smippo <url> --cdp http://localhost:9222\n' +
+          '  or launch one with a real profile:\n' +
+          '    smippo <url> --user-data-dir <path>',
+      ),
+    );
+  }
+
   // Compute output directory based on URL domain if not specified.
   // `continue`/`update` resolve the same way via resolveCaptureDir() so the two
   // paths cannot drift apart again.
@@ -435,7 +480,10 @@ async function capture(url, options) {
     proxy: options.proxy,
     cookies: options.cookies,
     headers: options.headers ? JSON.parse(options.headers) : {},
-    captureAuth: options.captureAuth,
+    cdp: options.cdp,
+    channel: options.channel,
+    userDataDir: options.userDataDir,
+    executablePath: options.executablePath,
     structure: options.structure || CAPTURE_DEFAULTS.structure,
     har: options.har !== false,
     screenshot: options.screenshot,

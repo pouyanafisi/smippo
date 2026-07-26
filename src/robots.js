@@ -9,10 +9,21 @@ export class RobotsHandler {
     this.enabled = !options.ignoreRobots;
     this.userAgent = options.userAgent || 'Smippo/0.0.1';
     this.cache = new Map();
+    this.logger = options.logger || null;
+    // Origins already warned about, so one unreachable robots.txt does not
+    // produce one line per URL.
+    this.failedOrigins = new Set();
   }
 
   /**
-   * Check if a URL is allowed by robots.txt
+   * Check if a URL is allowed by robots.txt.
+   *
+   * Fails OPEN: when robots.txt cannot be fetched or parsed, the URL is allowed.
+   * That is the long-standing behaviour and is left unchanged - flipping it
+   * would silently abort crawls of sites that simply have no robots.txt. What
+   * changed is that the fail-open is now logged instead of being invisible, so
+   * "smippo ignored robots.txt" and "smippo could not read robots.txt" are
+   * distinguishable after the fact.
    */
   async isAllowed(url, fetchFn) {
     if (!this.enabled) return true;
@@ -22,8 +33,8 @@ export class RobotsHandler {
       if (!robots) return true;
 
       return robots.isAllowed(url, this.userAgent);
-    } catch {
-      // If we can't fetch/parse robots.txt, allow access
+    } catch (error) {
+      this._warnFailOpen(url, error.message);
       return true;
     }
   }
@@ -45,6 +56,7 @@ export class RobotsHandler {
       const robotsContent = await fetchFn(robotsUrl);
 
       if (!robotsContent) {
+        this._warnFailOpen(url, 'robots.txt was empty or unreachable');
         this.cache.set(robotsUrl, null);
         return null;
       }
@@ -54,9 +66,28 @@ export class RobotsHandler {
       this.cache.set(robotsUrl, robots);
 
       return robots;
-    } catch {
+    } catch (error) {
+      this._warnFailOpen(url, error.message);
       return null;
     }
+  }
+
+  /**
+   * Log a fail-open once per origin.
+   */
+  _warnFailOpen(url, reason) {
+    if (!this.logger) return;
+    let origin;
+    try {
+      origin = new URL(url).origin;
+    } catch {
+      origin = url;
+    }
+    if (this.failedOrigins.has(origin)) return;
+    this.failedOrigins.add(origin);
+    this.logger.warn(
+      `Could not read robots.txt for ${origin} (${reason}) - proceeding as allowed`,
+    );
   }
 
   /**
