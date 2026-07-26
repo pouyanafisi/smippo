@@ -21,6 +21,7 @@ import {
   siteDirForTarget,
   isCaptureDir,
 } from './utils/capture-dir.js';
+import {CHALLENGE_ADVICE} from './challenge.js';
 
 const program = new Command();
 
@@ -485,6 +486,15 @@ async function capture(url, options) {
     }
   });
 
+  crawler.on('page:challenge', ({url, markers}) => {
+    spinner.fail(
+      chalk.red(
+        `Challenge page, NOT content: ${truncateUrl(url, 50)} [${markers.join(', ')}]`,
+      ),
+    );
+    spinner.start();
+  });
+
   crawler.on('error', ({url, error}) => {
     if (!options.quiet) {
       spinner.warn(`Failed: ${truncateUrl(url, 50)} - ${error.message}`);
@@ -494,15 +504,48 @@ async function capture(url, options) {
 
   const result = await crawler.start();
 
-  spinner.succeed(chalk.green(`Capture complete!`));
+  const challenged = result.stats.challenged || 0;
+  const allChallenged = challenged > 0 && result.stats.pagesCapt === 0;
+
+  if (allChallenged) {
+    spinner.fail(chalk.red('Capture FAILED - every page was a challenge page'));
+  } else if (challenged > 0) {
+    spinner.warn(
+      chalk.yellow(`Capture complete, but ${challenged} page(s) were blocked`),
+    );
+  } else {
+    spinner.succeed(chalk.green(`Capture complete!`));
+  }
+
   console.log('');
   console.log(chalk.cyan('  Summary:'));
   console.log(`    Pages captured:  ${result.stats.pagesCapt}`);
+  if (challenged > 0) {
+    console.log(
+      chalk.red(
+        `    Challenge pages: ${challenged}  (bot checks, NOT site content)`,
+      ),
+    );
+  }
   console.log(`    Assets saved:    ${result.stats.assetsCapt}`);
   console.log(`    Total size:      ${formatSize(result.stats.totalSize)}`);
   console.log(`    Duration:        ${formatDuration(result.stats.duration)}`);
   if (result.stats.errors > 0) {
     console.log(chalk.yellow(`    Errors:          ${result.stats.errors}`));
+  }
+
+  if (challenged > 0) {
+    console.log('');
+    console.log(chalk.red.bold(`  ⚠ ${challenged} page(s) were bot checks.`));
+    for (const line of CHALLENGE_ADVICE) {
+      console.log(line ? chalk.yellow(`  ${line}`) : '');
+    }
+    console.log('');
+    console.log(
+      chalk.dim(
+        `  Flagged in ${outputDir}/.smippo/manifest.json under "challenge".`,
+      ),
+    );
   }
   console.log('');
   console.log(`  Output: ${chalk.underline(outputDir)}`);
@@ -520,6 +563,12 @@ async function capture(url, options) {
     });
   } catch {
     // Silently ignore manifest errors
+  }
+
+  // Nothing usable came back. Exiting 0 here is what let a challenged capture
+  // read as a success in scripts and CI.
+  if (allChallenged) {
+    process.exitCode = 1;
   }
 }
 

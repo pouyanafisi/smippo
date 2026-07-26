@@ -14,6 +14,7 @@ import {
   fetchMissingResources,
 } from './utils/fetch-missing.js';
 import {shouldExcludeUrl} from './filters/exclude-patterns.js';
+import {detectChallenge} from './challenge.js';
 import {
   createManifest,
   writeManifest,
@@ -286,6 +287,15 @@ export class Crawler extends EventEmitter {
 
       const result = await capture.capture(url);
 
+      // Is this the site, or a bot check pretending to be it? Silently saving a
+      // Turnstile interstitial as if it were content is the worst failure mode
+      // this tool has, because it is only discovered much later.
+      const challenge = detectChallenge({
+        html: result.html,
+        status: result.status,
+        contentType: result.contentType,
+      });
+
       // Save resources
       const savedResources = await this.saver.saveResources(result.resources);
 
@@ -360,12 +370,15 @@ export class Crawler extends EventEmitter {
       // Save HTML
       const htmlPath = await this.saver.saveHtml(url, rewrittenHtml);
 
-      // Update manifest
+      // Update manifest. A challenged page is recorded and flagged rather than
+      // counted as captured content.
       addPageToManifest(this.manifest, {
         url,
         localPath: this.saver.getRelativePath(htmlPath),
+        status: result.status,
         size: Buffer.byteLength(rewrittenHtml, 'utf8'),
         title: result.title,
+        challenge,
       });
 
       // Save screenshot if captured
@@ -376,6 +389,22 @@ export class Crawler extends EventEmitter {
       // Save PDF if captured
       if (result.pdf) {
         await this.saver.savePdf(url, result.pdf);
+      }
+
+      if (challenge.challenged) {
+        this.logger.error(
+          `Challenge page (not content): ${url} [${challenge.markers.join(', ')}]`,
+        );
+        this.emit('page:challenge', {
+          url,
+          localPath: htmlPath,
+          markers: challenge.markers,
+          reason: challenge.reason,
+          status: result.status,
+        });
+        // Every link on an interstitial belongs to the interstitial. Following
+        // them would just fill the mirror with more challenge pages.
+        return;
       }
 
       this.emit('page:complete', {

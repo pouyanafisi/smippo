@@ -92,6 +92,7 @@ export function createManifest(url, options) {
       totalSize: 0,
       duration: 0,
       errors: 0,
+      challenged: 0,
     },
     pages: [],
     assets: [],
@@ -102,16 +103,29 @@ export function createManifest(url, options) {
  * Update manifest with captured page
  */
 export function addPageToManifest(manifest, page) {
-  manifest.pages.push({
+  const entry = {
     url: page.url,
     localPath: page.localPath,
     status: page.status || 200,
     captured: new Date().toISOString(),
     size: page.size,
     title: page.title,
-  });
+  };
 
-  manifest.stats.pagesCapt++;
+  // A challenge page is recorded so the file on disk is accounted for, but it is
+  // NOT counted as a captured page - it is a bot check, not site content.
+  if (page.challenge?.challenged) {
+    entry.challenge = {
+      detected: true,
+      markers: page.challenge.markers || [],
+      reason: page.challenge.reason || null,
+    };
+    manifest.stats.challenged = (manifest.stats.challenged || 0) + 1;
+  } else {
+    manifest.stats.pagesCapt++;
+  }
+
+  manifest.pages.push(entry);
   manifest.stats.totalSize += page.size || 0;
   manifest.updated = new Date().toISOString();
 }

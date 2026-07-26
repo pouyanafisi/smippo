@@ -35,12 +35,20 @@ export class PageCapture {
       await this.page.emulateMedia({reducedMotion: 'reduce'});
     }
 
-    // Navigate to the page
+    // Navigate to the page.
+    // The main-document response is kept so the caller can tell content from a
+    // block page (e.g. HTTP 403 with an HTML body). See src/challenge.js.
+    let status = null;
+    let contentType = null;
     try {
-      await this.page.goto(url, {
+      const response = await this.page.goto(url, {
         waitUntil: this.options.wait || 'networkidle',
         timeout: this.options.timeout || 30000,
       });
+      if (response) {
+        status = response.status();
+        contentType = response.headers()['content-type'] || null;
+      }
     } catch (error) {
       // Handle navigation errors but continue if we got some content
       if (!this.page.url().startsWith('http')) {
@@ -114,6 +122,8 @@ export class PageCapture {
       url: finalUrl,
       requestedUrl: url,
       html,
+      status,
+      contentType,
       title,
       links,
       resources: this.resources,
