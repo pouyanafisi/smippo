@@ -3,7 +3,7 @@ import {Command} from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import {Crawler} from './crawler.js';
-import {readManifest, manifestExists} from './manifest.js';
+import {readManifest} from './manifest.js';
 import {version} from './utils/version.js';
 import {
   showHelp,
@@ -11,11 +11,16 @@ import {
   shouldRunInteractive,
 } from './interactive.js';
 import {
-  getSiteDir,
   getDomainFromUrl,
   addSiteToGlobalManifest,
   ensureSmippoHome,
+  getSitesDir,
 } from './utils/home.js';
+import {
+  resolveCaptureDir,
+  siteDirForTarget,
+  isCaptureDir,
+} from './utils/capture-dir.js';
 
 const program = new Command();
 
@@ -53,7 +58,12 @@ export function run() {
     .description(
       'Modern website copier powered by Playwright - capture JS-rendered pages for offline viewing',
     )
-    .version(version);
+    .version(version)
+    // The program itself declares -o/--output for the default capture command.
+    // Without positional-option parsing, that declaration shadows the identically
+    // named option on `continue`/`update`, so `smippo update -o <dir>` never
+    // reached the subcommand and the directory was silently ignored.
+    .enablePositionalOptions();
 
   // Main capture command
   program
@@ -205,13 +215,19 @@ export function run() {
 
   // Continue command
   program
-    .command('continue')
-    .description('Resume an interrupted capture')
-    .option('-o, --output <dir>', 'Output directory', './site')
+    .command('continue [target]')
+    .description(
+      'Resume an interrupted capture (default: most recent capture; ' +
+        'or pass a URL/hostname)',
+    )
+    .option(
+      '-o, --output <dir>',
+      'Capture directory (default: resolved from [target], else most recent)',
+    )
     .option('-v, --verbose', 'Verbose output')
-    .action(async options => {
+    .action(async (target, options) => {
       try {
-        await continueCapture(options);
+        await continueCapture({...options, target});
       } catch (error) {
         console.error(chalk.red(`\n✗ Error: ${error.message}`));
         process.exit(1);
@@ -220,13 +236,19 @@ export function run() {
 
   // Update command
   program
-    .command('update')
-    .description('Update an existing mirror')
-    .option('-o, --output <dir>', 'Output directory', './site')
+    .command('update [target]')
+    .description(
+      'Update an existing mirror (default: most recent capture; ' +
+        'or pass a URL/hostname)',
+    )
+    .option(
+      '-o, --output <dir>',
+      'Capture directory (default: resolved from [target], else most recent)',
+    )
     .option('-v, --verbose', 'Verbose output')
-    .action(async options => {
+    .action(async (target, options) => {
       try {
-        await updateCapture(options);
+        await updateCapture({...options, target});
       } catch (error) {
         console.error(chalk.red(`\n✗ Error: ${error.message}`));
         process.exit(1);
@@ -342,12 +364,39 @@ export function run() {
   program.parse();
 }
 
+/**
+ * Fallbacks for options commander would normally have defaulted.
+ *
+ * `capture()` is not only reached through the main command — `continue`,
+ * `update` and interactive mode all call it with a partial option bag, so every
+ * numeric option has to survive being absent rather than becoming NaN.
+ */
+const CAPTURE_DEFAULTS = {
+  depth: 0,
+  scope: 'domain',
+  wait: 'networkidle',
+  waitTime: 500,
+  timeout: 30000,
+  scrollWait: 1000,
+  scrollStep: 200,
+  scrollDelay: 50,
+  scrollBehavior: 'smooth',
+  structure: 'original',
+  concurrency: 8,
+};
+
+function toInt(value, fallback) {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 async function capture(url, options) {
-  // Compute output directory based on URL domain if not specified
+  // Compute output directory based on URL domain if not specified.
+  // `continue`/`update` resolve the same way via resolveCaptureDir() so the two
+  // paths cannot drift apart again.
   let outputDir = options.output;
   if (!outputDir) {
-    const domain = getDomainFromUrl(url);
-    outputDir = getSiteDir(domain);
+    outputDir = siteDirForTarget(url);
     await ensureSmippoHome();
   }
 
@@ -359,8 +408,8 @@ async function capture(url, options) {
   const crawler = new Crawler({
     url,
     output: outputDir,
-    depth: parseInt(options.depth, 10),
-    scope: options.scope,
+    depth: toInt(options.depth, CAPTURE_DEFAULTS.depth),
+    scope: options.scope || CAPTURE_DEFAULTS.scope,
     stayInDir: options.stayInDir,
     externalAssets: options.externalAssets,
     include: options.include || [],
@@ -369,14 +418,14 @@ async function capture(url, options) {
     mimeExclude: options.mimeExclude || [],
     maxSize: parseSize(options.maxSize),
     minSize: parseSize(options.minSize),
-    wait: options.wait,
-    waitTime: parseInt(options.waitTime, 10),
-    timeout: parseInt(options.timeout, 10),
+    wait: options.wait || CAPTURE_DEFAULTS.wait,
+    waitTime: toInt(options.waitTime, CAPTURE_DEFAULTS.waitTime),
+    timeout: toInt(options.timeout, CAPTURE_DEFAULTS.timeout),
     scroll: options.scroll,
-    scrollWait: parseInt(options.scrollWait, 10),
-    scrollStep: parseInt(options.scrollStep, 10),
-    scrollDelay: parseInt(options.scrollDelay, 10),
-    scrollBehavior: options.scrollBehavior,
+    scrollWait: toInt(options.scrollWait, CAPTURE_DEFAULTS.scrollWait),
+    scrollStep: toInt(options.scrollStep, CAPTURE_DEFAULTS.scrollStep),
+    scrollDelay: toInt(options.scrollDelay, CAPTURE_DEFAULTS.scrollDelay),
+    scrollBehavior: options.scrollBehavior || CAPTURE_DEFAULTS.scrollBehavior,
     revealAll: options.revealAll,
     reducedMotion: options.reducedMotion,
     userAgent: options.userAgent,
@@ -386,14 +435,17 @@ async function capture(url, options) {
     cookies: options.cookies,
     headers: options.headers ? JSON.parse(options.headers) : {},
     captureAuth: options.captureAuth,
-    structure: options.structure,
-    har: options.har,
+    structure: options.structure || CAPTURE_DEFAULTS.structure,
+    har: options.har !== false,
     screenshot: options.screenshot,
     pdf: options.pdf,
     noJs: options.static,
     inlineCss: options.inlineCss,
     keepAnalytics: options.keepAnalytics,
-    concurrency: parseInt(options.workers || options.concurrency, 10),
+    concurrency: toInt(
+      options.workers ?? options.concurrency,
+      CAPTURE_DEFAULTS.concurrency,
+    ),
     maxPages: options.maxPages ? parseInt(options.maxPages, 10) : undefined,
     maxTime: options.maxTime ? parseInt(options.maxTime, 10) * 1000 : undefined,
     rateLimit: options.rateLimit ? parseInt(options.rateLimit, 10) : 0,
@@ -471,36 +523,65 @@ async function capture(url, options) {
   }
 }
 
-async function continueCapture(options) {
-  if (!manifestExists(options.output)) {
+/**
+ * Find the capture directory for `continue`/`update`, or throw an error that
+ * names the directory actually looked in.
+ */
+export async function locateCapture(options, verb) {
+  const {dir, source} = await resolveCaptureDir({
+    output: options.output,
+    target: options.target,
+  });
+
+  if (dir && isCaptureDir(dir)) {
+    if (source === 'recent' && !options.quiet) {
+      console.log(chalk.dim(`Using most recent capture: ${dir}`));
+    }
+    return dir;
+  }
+
+  if (!dir) {
     throw new Error(
-      'No capture found in the specified directory. Start a new capture first.',
+      `No captures found under ${getSitesDir()}.\n` +
+        `  Start one first:  smippo <url>\n` +
+        `  Or point at a directory:  smippo ${verb} -o <dir>`,
     );
   }
 
-  const manifest = await readManifest(options.output);
+  const hint =
+    source === 'option'
+      ? `  Check the path, or omit -o to ${verb} the most recent capture.`
+      : source === 'target'
+        ? `  No capture for that host yet. Start one first:  smippo <url>`
+        : `  Start a new capture first:  smippo <url>`;
+
+  throw new Error(`No capture found in ${dir}\n${hint}`);
+}
+
+async function continueCapture(options) {
+  const outputDir = await locateCapture(options, 'continue');
+
+  const manifest = await readManifest(outputDir);
   console.log(chalk.cyan(`Continuing capture of ${manifest.rootUrl}...`));
 
   await capture(manifest.rootUrl, {
     ...manifest.options,
     ...options,
+    output: outputDir,
     useCache: true,
   });
 }
 
 async function updateCapture(options) {
-  if (!manifestExists(options.output)) {
-    throw new Error(
-      'No capture found in the specified directory. Start a new capture first.',
-    );
-  }
+  const outputDir = await locateCapture(options, 'update');
 
-  const manifest = await readManifest(options.output);
+  const manifest = await readManifest(outputDir);
   console.log(chalk.cyan(`Updating mirror of ${manifest.rootUrl}...`));
 
   await capture(manifest.rootUrl, {
     ...manifest.options,
     ...options,
+    output: outputDir,
     useCache: true,
     update: true,
   });

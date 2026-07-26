@@ -49,10 +49,10 @@ export function showHelp() {
     `  ${chalk.green('serve')} ${chalk.dim('[directory]')}    Serve captured site locally`,
   );
   console.log(
-    `  ${chalk.green('continue')}                Resume interrupted capture`,
+    `  ${chalk.green('continue')} ${chalk.dim('[target]')}       Resume interrupted capture ${chalk.dim('(default: most recent)')}`,
   );
   console.log(
-    `  ${chalk.green('update')}                  Update existing mirror`,
+    `  ${chalk.green('update')} ${chalk.dim('[target]')}         Update existing mirror ${chalk.dim('(default: most recent)')}`,
   );
   console.log(
     `  ${chalk.green('help')}                    Show this help message`,
@@ -62,7 +62,7 @@ export function showHelp() {
   console.log(chalk.bold.white('CAPTURE OPTIONS'));
   console.log('');
   console.log(
-    `  ${chalk.yellow('-o, --output')} ${chalk.dim('<dir>')}       Output directory ${chalk.dim('(default: ./site)')}`,
+    `  ${chalk.yellow('-o, --output')} ${chalk.dim('<dir>')}       Output directory ${chalk.dim('(default: ~/.smippo/sites/<domain>)')}`,
   );
   console.log(
     `  ${chalk.yellow('-d, --depth')} ${chalk.dim('<n>')}          Recursion depth ${chalk.dim('(0 = single page)')}`,
